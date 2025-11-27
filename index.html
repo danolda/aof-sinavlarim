@@ -20,9 +20,7 @@
             border: 2px solid #e9ecef; 
             border-radius: 8px; 
             margin: 15px 0;
-            transition: transform 0.2s;
         }
-        .question-img:hover { transform: scale(1.01); }
         
         /* Şık Butonları */
         .btn-circle { 
@@ -56,7 +54,7 @@
         
         .loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.9); z-index: 9999;
+            background: rgba(255,255,255,0.95); z-index: 9999;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
         }
@@ -71,7 +69,7 @@
         <div class="col-lg-8">
             <div class="card p-4">
                 <div class="text-center mb-4">
-                    <h2 class="fw-bold text-primary">AÖF Sınav Hazırlayıcı</h2>
+                    <h2 class="fw-bold text-primary">AÖF Sınav Hazırlayıcı v2</h2>
                     <p class="text-muted">Linkleri girin, soruları çekip çözelim.</p>
                 </div>
                 
@@ -79,11 +77,10 @@
                     <label class="form-label fw-bold">Ders Linkleri (Aofsoru.com)</label>
                     <div id="urlInputs">
                         <input type="text" class="form-control mb-2 url-input" placeholder="Örn: https://aofsoru.com/..." >
-                        <input type="text" class="form-control mb-2 url-input" placeholder="Örn: https://aofsoru.com/..." >
+                        <input type="text" class="form-control mb-2 url-input" placeholder="Link 2" >
                         <input type="text" class="form-control mb-2 url-input" placeholder="Link 3" >
-                        <input type="text" class="form-control mb-2 url-input" placeholder="Link 4" >
-                        <input type="text" class="form-control mb-2 url-input" placeholder="Link 5" >
                     </div>
+                    <small class="text-muted">Not: Linklerin başında https:// olduğundan emin olun.</small>
                 </div>
 
                 <div class="row g-3">
@@ -143,29 +140,39 @@
 <div id="loading" class="loading-overlay hidden">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
     <h4 class="mt-3 text-dark" id="loadingText">Veriler Çekiliyor...</h4>
-    <p class="text-muted">Bu işlem internet hızınıza göre biraz sürebilir.</p>
+    <p class="text-muted text-center px-3" id="loadingSubText">Sunucuya bağlanılıyor...</p>
 </div>
 
 <!-- JavaScript Kodları -->
 <script>
-    const PROXY_URL = "https://api.allorigins.win/get?url="; // CORS Proxy
+    // YENİ PROXY SERVİSİ (Daha hızlı ve HTML döndürür)
+    const PROXY_URL = "https://corsproxy.io/?"; 
     const BASE_URL = "https://aofsoru.com";
     let examData = [];
 
-    // URL'den HTML çekme fonksiyonu (Proxy üzerinden)
+    // URL'den HTML çekme fonksiyonu (Güncellendi)
     async function fetchHtml(url) {
         try {
-            const response = await fetch(PROXY_URL + encodeURIComponent(url));
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
-            return data.contents; // Proxy HTML'i 'contents' içinde döndürür
+            // URL encode ediyoruz ki karışıklık olmasın
+            const targetUrl = PROXY_URL + encodeURIComponent(url);
+            
+            const response = await fetch(targetUrl);
+            
+            if (!response.ok) {
+                console.error(`HTTP Hata: ${response.status}`);
+                return null;
+            }
+            
+            // Bu proxy JSON değil direkt TEXT (HTML) döndürür
+            const htmlText = await response.text();
+            return htmlText;
+            
         } catch (error) {
             console.error("Fetch Hatası:", error);
             return null;
         }
     }
 
-    // HTML stringini DOM nesnesine çevirir
     function parseHtml(htmlString) {
         const parser = new DOMParser();
         return parser.parseFromString(htmlString, "text/html");
@@ -175,54 +182,61 @@
         const inputs = document.querySelectorAll('.url-input');
         const urls = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== "");
         const yearLimit = parseInt(document.getElementById('yearLimit').value);
-        const examType = document.getElementById('examType').value; // 'vize' veya 'final'
+        const examType = document.getElementById('examType').value; 
 
         if (urls.length === 0) {
             alert("Lütfen en az bir URL girin!");
             return;
         }
 
-        showLoading(true, "Dersler analiz ediliyor...");
+        showLoading(true, "Ders Sayfası Taranıyor...", "Lütfen bekleyin, bu işlem internet hızınıza bağlıdır.");
         examData = [];
 
         for (let url of urls) {
-            // URL düzeltme
-            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.startsWith('http')) {
+                url = 'https://' + url;
+            }
 
+            console.log("Ders sayfası çekiliyor:", url);
             const courseHtml = await fetchHtml(url);
-            if (!courseHtml) continue;
+            
+            if (!courseHtml) {
+                console.log("Ders HTML boş geldi.");
+                continue;
+            }
 
             const doc = parseHtml(courseHtml);
             
             // Ders başlığını al
-            let title = doc.querySelector('h1')?.innerText || "Bilinmeyen Ders";
+            let title = doc.querySelector('h1')?.innerText || "Ders Başlığı Bulunamadı";
             title = title.replace('Soruları', '').trim();
 
             // Linkleri bul
             const links = getExamLinks(doc, examType, yearLimit);
+            console.log(`${title} için bulunan link sayısı: ${links.length}`);
             
-            // Linklerden soruları çek
             if (links.length > 0) {
-                updateLoadingText(`${title} için ${links.length} adet sınav taranıyor...`);
+                updateLoadingText(`${title} - Sorular Çekiliyor`, `${links.length} adet sınav işleniyor...`);
                 const questions = await scrapeQuestionsFromLinks(links);
                 
-                examData.push({
-                    title: title,
-                    questions: questions
-                });
+                if (questions.length > 0) {
+                    examData.push({
+                        title: title,
+                        questions: questions
+                    });
+                }
             }
         }
 
         showLoading(false);
         if (examData.length === 0) {
-            alert("Hiçbir soru bulunamadı. Linkleri kontrol edin veya 'allorigins' proxy servisi yoğun olabilir.");
+            alert("Hiçbir soru çekilemedi. Olası sebepler:\n1. Link yanlış olabilir.\n2. Proxy servisi siteye erişemiyor olabilir.\n3. Site yapısı değişmiş olabilir.");
         } else {
             renderCourses();
             switchPanel('course-panel');
         }
     }
 
-    // Sayfadaki Vize/Final linklerini bulur
     function getExamLinks(doc, type, limit) {
         const allLinks = doc.querySelectorAll('a');
         const targetText = type === "vize" ? "ARA" : "DÖNEM SONU";
@@ -233,70 +247,86 @@
             const href = link.getAttribute('href');
 
             if (title.includes(targetText) && href) {
-                // Yılı bulmaya çalış (Regex)
                 const yearMatch = title.match(/(\d{4})\s*-\s*(\d{4})/);
                 let year = 0;
                 if (yearMatch) {
-                    year = parseInt(yearMatch[1]); // İlk yıl (örn: 2023)
+                    year = parseInt(yearMatch[1]);
+                }
+                
+                let fullUrl = href;
+                if (!href.startsWith('http')) {
+                    // Baştaki slash kontrolü
+                    if(!href.startsWith('/')) href = '/' + href;
+                    fullUrl = BASE_URL + href;
                 }
                 
                 validLinks.push({
-                    url: href.startsWith('http') ? href : BASE_URL + href,
+                    url: fullUrl,
                     year: year,
                     title: title
                 });
             }
         });
 
-        // Yıla göre sırala (Yeniden eskiye) ve limiti uygula
         validLinks.sort((a, b) => b.year - a.year);
         return validLinks.slice(0, limit);
     }
 
-    // Bulunan sınav linklerine gidip soruları çeker
     async function scrapeQuestionsFromLinks(links) {
         let allQuestions = [];
 
-        // Hepsini paralel çekmek yerine sırayla çekelim (Sunucuyu yormamak ve sıra karışmasın diye)
         for (let link of links) {
+            console.log("Sınav sayfası taranıyor:", link.url);
             const html = await fetchHtml(link.url);
             if (!html) continue;
 
             const doc = parseHtml(html);
-            // Soru resimlerini bul
             const imgs = doc.querySelectorAll('img.QuestionImg');
 
             imgs.forEach((img, index) => {
                 let src = img.getAttribute('src') || img.getAttribute('data-src');
-                if (src && !src.startsWith('http')) {
-                    src = src.startsWith('//') ? 'https:' + src : BASE_URL + src;
-                }
-
-                // Doğru cevabı bulma
-                // HTML yapısında img'nin ebeveynlerinde butonları arıyoruz
-                let parent = img.closest('.card-body') || img.parentElement.parentElement;
-                let correctAnswer = "Bilinmiyor";
-
-                if (parent) {
-                    const successBtn = parent.querySelector('.btnCevap.btn-success');
-                    if (successBtn) {
-                        correctAnswer = successBtn.innerText.trim();
+                if (src) {
+                     if (!src.startsWith('http')) {
+                        if (src.startsWith('//')) {
+                            src = 'https:' + src;
+                        } else {
+                            src = BASE_URL + (src.startsWith('/') ? '' : '/') + src;
+                        }
                     }
-                }
 
-                allQuestions.push({
-                    id: allQuestions.length + 1,
-                    image: src,
-                    answer: correctAnswer,
-                    examInfo: link.title
-                });
+                    // Cevap tespiti
+                    let parent = img.closest('.card-body');
+                    // Alternatif parent bulma (site yapısına göre)
+                    if(!parent && img.parentElement && img.parentElement.parentElement) {
+                         parent = img.parentElement.parentElement;
+                    }
+
+                    let correctAnswer = "Bilinmiyor";
+
+                    if (parent) {
+                        // Sitedeki "btn-success" class'ı doğru cevabı belirtiyor
+                        const successBtn = parent.querySelector('.btnCevap.btn-success');
+                        if (successBtn) {
+                            correctAnswer = successBtn.innerText.trim();
+                        }
+                    }
+
+                    allQuestions.push({
+                        id: allQuestions.length + 1,
+                        image: src,
+                        answer: correctAnswer,
+                        examInfo: link.title
+                    });
+                }
             });
+            
+            // Siteyi boğmamak için 1 saniye bekle
+            await new Promise(r => setTimeout(r, 1000));
         }
         return allQuestions;
     }
 
-    // --- ARAYÜZ İŞLEMLERİ ---
-
+    // --- ARAYÜZ ---
     function renderCourses() {
         const list = document.getElementById('course-list');
         list.innerHTML = "";
@@ -331,7 +361,7 @@
             card.className = "card mb-5";
             card.innerHTML = `
                 <div class="card-header bg-white">
-                    <small class="text-muted">${q.examInfo} - Soru ${qIndex + 1}</small>
+                    <small class="text-muted">${q.examInfo}</small>
                 </div>
                 <div class="card-body text-center">
                     <img src="${q.image}" class="question-img" alt="Soru Yüklenemedi">
@@ -356,23 +386,20 @@
         const feedback = document.getElementById(`feedback-${qIndex}`);
         const buttons = parent.querySelectorAll('button');
 
-        // Tıklamayı engelle
         buttons.forEach(b => b.disabled = true);
 
         if (correct === "Bilinmiyor") {
-            feedback.innerHTML = `<span class="text-warning">Cevap anahtarı çekilemedi.</span>`;
-            btn.style.backgroundColor = "#ffc107"; // Sarı
+            feedback.innerHTML = `<span class="text-warning">Cevap anahtarı çekilemedi. Site yapısı farklı olabilir.</span>`;
+            btn.style.backgroundColor = "#ffc107";
             return;
         }
 
         if (selected === correct) {
             btn.classList.add('correct-green');
-            feedback.innerHTML = `<span class="text-success"><i class="material-icons align-middle" style="font-size:1.2rem">check_circle</i> Doğru!</span>`;
+            feedback.innerHTML = `<span class="text-success">Doğru!</span>`;
         } else {
             btn.classList.add('wrong-red');
-            feedback.innerHTML = `<span class="text-danger"><i class="material-icons align-middle" style="font-size:1.2rem">cancel</i> Yanlış. Doğru Cevap: ${correct}</span>`;
-            
-            // Doğru olanı göster
+            feedback.innerHTML = `<span class="text-danger">Yanlış. Doğru Cevap: ${correct}</span>`;
             buttons.forEach(b => {
                 if (b.innerText === correct) b.classList.add('correct-green');
             });
@@ -391,18 +418,20 @@
         if (target === 'courses') switchPanel('course-panel');
     }
 
-    function showLoading(show, text) {
+    function showLoading(show, text, subText) {
         const el = document.getElementById('loading');
         if (show) {
             el.classList.remove('hidden');
             if(text) document.getElementById('loadingText').innerText = text;
+            if(subText) document.getElementById('loadingSubText').innerText = subText;
         } else {
             el.classList.add('hidden');
         }
     }
     
-    function updateLoadingText(text) {
-        document.getElementById('loadingText').innerText = text;
+    function updateLoadingText(text, subText) {
+        if(text) document.getElementById('loadingText').innerText = text;
+        if(subText) document.getElementById('loadingSubText').innerText = subText;
     }
 </script>
 
