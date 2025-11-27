@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF Sınav Robotu V10 (Gold Edition)</title>
+    <title>AÖF Sınav Robotu V11 (Mobil Uyumlu)</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- İkonlar -->
@@ -17,7 +17,6 @@
             --border-color: #dee2e6;
             --sidebar-active: #0d6efd;
             --sidebar-active-text: #ffffff;
-            --stat-bg: #e9ecef;
         }
 
         [data-theme="dark"] {
@@ -27,7 +26,6 @@
             --border-color: #333;
             --sidebar-active: #bb86fc;
             --sidebar-active-text: #000000;
-            --stat-bg: #2d2d2d;
         }
 
         body { background-color: var(--bg-body); color: var(--text-color); transition: 0.3s; font-family: 'Segoe UI', sans-serif; }
@@ -78,13 +76,21 @@
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
         }
+        
+        /* Mobil için yukarı dön butonu stili */
+        .scroll-top-wrapper {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--border-color);
+            text-align: center;
+        }
     </style>
 </head>
 <body>
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-4" style="background-color: var(--bg-card);">
-    <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> AÖF Robotu V10</a>
+    <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> AÖF Robotu V11</a>
     <div class="ms-auto d-flex gap-2">
         <button class="btn btn-outline-danger btn-sm hidden" id="globalResetBtn" onclick="fullReset()">
             <i class="bi bi-trash"></i> Hafızayı Sil
@@ -305,8 +311,7 @@
             } catch(e) { continue; }
 
             let courseQuestions = [];
-            // Bu sefer Set yerine Map kullanıyoruz ki güncelleyebilelim
-            // Anahtar: Resim URL, Değer: Soru Objesi
+            // Map kullanarak benzersiz ve güncellenebilir soruları tutuyoruz
             let questionMap = new Map(); 
 
             for (let i = 0; i < limit; i++) {
@@ -342,15 +347,13 @@
                                     title: `${currentY}-${nextY} ${type.toUpperCase()}`
                                 };
 
-                                // --- AKILLI BİRLEŞTİRME ---
+                                // Akıllı Birleştirme: Cevap varsa güncelle, yoksa ekle
                                 if(questionMap.has(src)) {
-                                    // Eğer bu resim zaten varsa, eskisinde cevap yoksa ama yenisinde varsa GÜNCELLE
                                     const existing = questionMap.get(src);
                                     if(existing.ans === "Bilinmiyor" && finalAns !== "Bilinmiyor") {
-                                        questionMap.set(src, questionObj); // Yenisiyle değiştir
+                                        questionMap.set(src, questionObj); 
                                     }
                                 } else {
-                                    // Yoksa direkt ekle
                                     questionMap.set(src, questionObj);
                                 }
                             }
@@ -360,7 +363,6 @@
                 await new Promise(r => setTimeout(r, 400));
             }
 
-            // Map'ten Array'e çevir
             courseQuestions = Array.from(questionMap.values());
 
             if(courseQuestions.length > 0) {
@@ -368,7 +370,7 @@
                 allCoursesData.push({
                     title: courseTitle,
                     questions: courseQuestions,
-                    stats: { correct: 0, wrong: 0 } // İstatistikler için
+                    stats: { correct: 0, wrong: 0 } 
                 });
             }
         }
@@ -376,9 +378,7 @@
         document.getElementById('loader').classList.add('hidden');
         
         if(allCoursesData.length > 0) {
-            // Veriyi Kaydet
             localStorage.setItem('aof_data', JSON.stringify(allCoursesData));
-            
             document.getElementById('result-panel').classList.remove('hidden');
             document.getElementById('globalResetBtn').classList.remove('hidden');
             renderSidebar();
@@ -399,12 +399,11 @@
         allCoursesData.forEach((course, index) => {
             const div = document.createElement('div');
             div.className = "sidebar-item";
-            // İstatistik Badge'leri
             div.innerHTML = `
                 <div class="text-truncate" style="max-width: 65%;">${course.title}</div>
                 <div class="d-flex gap-1">
-                    <span class="badge bg-success stat-badge" title="Doğru">${course.stats.correct}</span>
-                    <span class="badge bg-danger stat-badge" title="Yanlış">${course.stats.wrong}</span>
+                    <span class="badge bg-success stat-badge">${course.stats.correct}</span>
+                    <span class="badge bg-danger stat-badge">${course.stats.wrong}</span>
                 </div>
             `;
             div.onclick = () => showCourse(index);
@@ -457,6 +456,21 @@
             </div>
             `;
         });
+        
+        // --- MOBİL İÇİN YUKARI DÖN BUTONU ---
+        area.innerHTML += `
+            <div class="scroll-top-wrapper">
+                <p class="text-muted mb-3">Tüm sorular görüntülendi.</p>
+                <button class="btn btn-outline-primary btn-lg shadow-sm w-100 py-3 fw-bold" onclick="scrollToTop()">
+                    <i class="bi bi-arrow-up-circle-fill"></i> En Başa Dön / Ders Değiştir
+                </button>
+            </div>
+        `;
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function scrollToTop() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -488,13 +502,11 @@
             course.stats.wrong++;
         }
 
-        // İstatistikleri Güncelle ve Kaydet
-        renderSidebar(); // Menüdeki sayıları güncelle
+        renderSidebar();
         localStorage.setItem('aof_data', JSON.stringify(allCoursesData));
     }
 
     // --- RESET FONKSİYONLARI ---
-
     function resetCurrentCourse() {
         if(!confirm("Bu dersteki tüm cevaplarınız silinecek. Emin misiniz?")) return;
         
@@ -502,17 +514,13 @@
         course.stats.correct = 0;
         course.stats.wrong = 0;
         
-        // Ekranı yenile
         renderSidebar();
         showCourse(currentCourseIndex);
-        
-        // Hafızayı güncelle
         localStorage.setItem('aof_data', JSON.stringify(allCoursesData));
     }
 
     function fullReset() {
         if(!confirm("DİKKAT! Tüm dersler ve sorular hafızadan silinecek. Ana ekrana döneceksiniz. Onaylıyor musunuz?")) return;
-        
         localStorage.removeItem('aof_data');
         location.reload();
     }
