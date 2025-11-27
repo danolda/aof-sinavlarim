@@ -3,118 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF Sınav Robotu (V8 - Final)</title>
+    <title>AÖF Sınav Robotu V9 (Ultimate)</title>
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- İkonlar -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     
     <style>
-        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
-        .hidden { display: none !important; }
-        
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden; }
-        .question-img { 
-            max-width: 100%; 
-            border: 1px solid #dee2e6; 
-            border-radius: 8px; 
-            margin: 15px 0;
-            background: #fff;
+        :root {
+            --bg-body: #f4f6f8;
+            --bg-card: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --sidebar-bg: #ffffff;
+            --sidebar-active: #0d6efd;
+            --sidebar-active-text: #ffffff;
         }
-        
-        /* Butonlar */
+
+        [data-theme="dark"] {
+            --bg-body: #121212;
+            --bg-card: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333;
+            --sidebar-bg: #1e1e1e;
+            --sidebar-active: #bb86fc;
+            --sidebar-active-text: #000000;
+        }
+
+        body { background-color: var(--bg-body); color: var(--text-color); transition: 0.3s; font-family: 'Segoe UI', sans-serif; }
+        .card { background-color: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; }
+        .form-control, .form-select { background-color: var(--bg-card); color: var(--text-color); border-color: var(--border-color); }
+        .form-control:focus, .form-select:focus { background-color: var(--bg-card); color: var(--text-color); }
+
+        /* Sidebar Menü */
+        .sidebar-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .sidebar-item:hover { background-color: rgba(128,128,128,0.1); }
+        .sidebar-item.active { background-color: var(--sidebar-active); color: var(--sidebar-active-text); font-weight: bold; }
+
+        /* Sorular */
+        .question-img { 
+            max-width: 100%; border: 1px solid var(--border-color); border-radius: 8px; 
+            margin: 15px 0; background: #fff; padding: 5px;
+        }
+
+        /* Şık Butonları */
         .btn-circle { 
-            width: 55px; height: 55px; border-radius: 50%; padding: 0; 
-            font-size: 1.3rem; font-weight: bold; margin: 0 8px; 
-            border: 2px solid #6c757d; color: #6c757d; background: white; 
+            width: 50px; height: 50px; border-radius: 50%; padding: 0; 
+            font-size: 1.2rem; font-weight: bold; margin: 0 5px; 
+            border: 2px solid #6c757d; color: #6c757d; background: var(--bg-card); 
             transition: all 0.2s;
         }
-        .btn-circle:hover { background-color: #6c757d; color: white; transform: translateY(-3px); }
+        .btn-circle:hover { background-color: #6c757d; color: white; transform: scale(1.1); }
         
         .correct-green { background-color: #198754 !important; color: white !important; border-color: #198754 !important; }
         .wrong-red { background-color: #dc3545 !important; color: white !important; border-color: #dc3545 !important; }
+
+        .hidden { display: none !important; }
         
-        .loading { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.95); display:flex; justify-content:center; align-items:center; z-index:9999; flex-direction:column; }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-card); opacity: 0.95; z-index: 9999;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body>
 
-<div class="container py-5">
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg border-bottom px-4" style="background-color: var(--bg-card);">
+    <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> AÖF Sınav Robotu V9</a>
+    <div class="ms-auto">
+        <button class="btn btn-outline-secondary btn-sm" onclick="toggleTheme()">
+            <i class="bi bi-moon-stars-fill" id="themeIcon"></i> Tema
+        </button>
+    </div>
+</nav>
+
+<div class="container py-4">
     
-    <!-- AYARLAR -->
-    <div id="setup" class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card p-5">
-                <h3 class="text-center text-primary fw-bold mb-4">AÖF Sınav Robotu V8</h3>
-                <div class="alert alert-success small">
-                    <i class="bi bi-check-circle"></i> Yıl sorunu çözüldü (Link Üretimi)<br>
-                    <i class="bi bi-check-circle"></i> Cevap sorunu çözüldü (Data-Value Okuma)
-                </div>
-                
-                <label class="fw-bold">Ders Linki</label>
-                <input type="text" id="urlInput" class="form-control form-control-lg mb-3" placeholder="https://aofsoru.com/..." >
-                
-                <div class="row g-3">
-                    <div class="col-6">
-                        <label class="fw-bold">Başlangıç Yılı</label>
-                        <select id="startYear" class="form-select">
-                            <option value="2024">2024 - 2025</option>
-                            <option value="2023">2023 - 2024</option>
-                            <option value="2022">2022 - 2023</option>
-                            <option value="2021">2021 - 2022</option>
-                        </select>
+    <!-- GİRİŞ PANELİ -->
+    <div id="setup-panel">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card p-4 shadow-sm">
+                    <h4 class="text-center mb-4 fw-bold">Ders Tanımlama</h4>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Ders Linkleri (Maks 6 Adet)</label>
+                            <div class="row g-2">
+                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="1. Ders Linki (https://...)" ></div>
+                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="2. Ders Linki" ></div>
+                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="3. Ders Linki" ></div>
+                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="4. Ders Linki" ></div>
+                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="5. Ders Linki" ></div>
+                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="6. Ders Linki" ></div>
+                            </div>
+                            <small class="text-muted">Aofsoru.com sitesindeki dersin ana sayfa linkini yapıştırın.</small>
+                        </div>
                     </div>
-                    <div class="col-6">
-                        <label class="fw-bold">Geriye Dönük</label>
-                        <select id="countLimit" class="form-select">
-                            <option value="4" selected>Son 4 Sınav</option>
-                            <option value="6">Son 6 Sınav</option>
-                            <option value="10">Son 10 Sınav</option>
-                        </select>
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <label class="fw-bold">Başlangıç Yılı</label>
+                            <select id="startYear" class="form-select">
+                                <option value="2024">2024 - 2025</option>
+                                <option value="2023">2023 - 2024</option>
+                                <option value="2022">2022 - 2023</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="fw-bold">Geriye Dönük Kaç Sınav?</label>
+                            <select id="countLimit" class="form-select">
+                                <option value="2">Son 2 Sınav</option>
+                                <option value="3">Son 3 Sınav</option>
+                                <option value="4" selected>Son 4 Sınav</option>
+                                <option value="5">Son 5 Sınav</option>
+                                <option value="6">Son 6 Sınav</option>
+                                <option value="8">Son 8 Sınav</option>
+                                <option value="10">Son 10 Sınav</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="fw-bold">Sınav Türü</label>
+                            <select id="examType" class="form-select">
+                                <option value="ara">Ara Sınav (Vize)</option>
+                                <option value="donem-sonu">Dönem Sonu (Final)</option>
+                                <option value="tek-ders">Tek Ders Sınavı</option>
+                                <option value="yaz-okulu">Yaz Okulu</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <button class="btn btn-primary btn-lg px-5 fw-bold" onclick="startProcess()">
+                            <i class="bi bi-cloud-download"></i> Sınavları Çek ve Başla
+                        </button>
                     </div>
                 </div>
-
-                <div class="mt-3">
-                    <label class="fw-bold">Sınav Türü</label>
-                    <select id="examType" class="form-select">
-                        <option value="ara">Ara Sınav (Vize)</option>
-                        <option value="donem-sonu">Dönem Sonu (Final)</option>
-                        <option value="tek-ders">Tek Ders Sınavı</option>
-                        <option value="yaz-okulu">Yaz Okulu</option>
-                    </select>
-                </div>
-
-                <button class="btn btn-primary w-100 mt-4 btn-lg fw-bold" onclick="startGen()">Soruları Getir</button>
             </div>
         </div>
     </div>
 
-    <!-- SINAV ALANI -->
-    <div id="quiz" class="hidden">
-        <div class="d-flex justify-content-between mb-4 bg-white p-3 rounded shadow-sm sticky-top z-3">
-            <h5 id="courseTitle" class="m-0 text-truncate text-primary fw-bold" style="max-width:70%">Ders</h5>
-            <button class="btn btn-sm btn-outline-danger" onclick="location.reload()">Kapat</button>
-        </div>
-        <div id="qContainer" class="col-md-8 mx-auto pb-5"></div>
-        <div class="text-center pb-5">
-            <button class="btn btn-success btn-lg px-5" onclick="location.reload()">Yeni Sınav Başlat</button>
+    <!-- SONUÇ PANELİ (MENÜ + İÇERİK) -->
+    <div id="result-panel" class="hidden">
+        <div class="row">
+            <!-- Sol Menü -->
+            <div class="col-md-3 mb-4">
+                <div class="card p-3 sticky-top" style="top: 20px;">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2">Dersler</h5>
+                    <div id="sidebar-menu">
+                        <!-- Ders listesi buraya gelecek -->
+                    </div>
+                    <button class="btn btn-outline-danger w-100 mt-4 btn-sm" onclick="location.reload()">
+                        <i class="bi bi-x-circle"></i> Çıkış Yap
+                    </button>
+                </div>
+            </div>
+
+            <!-- Sağ İçerik -->
+            <div class="col-md-9">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 id="active-course-title" class="fw-bold text-primary m-0">Ders Seçiniz</h4>
+                        <span id="question-count" class="badge bg-secondary">0 Soru</span>
+                    </div>
+                    <hr>
+                    <div id="questions-area">
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-arrow-left-circle" style="font-size: 2rem;"></i><br>
+                            Lütfen soldaki menüden bir ders seçin.
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
 </div>
 
-<!-- LOADING -->
-<div id="loader" class="loading hidden">
-    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div>
-    <h5 class="mt-3 fw-bold">Veriler Çekiliyor...</h5>
-    <div class="mt-1 text-muted" id="logMsg">Başlatılıyor...</div>
+<!-- YÜKLENİYOR EKRANI -->
+<div id="loader" class="loading-overlay hidden">
+    <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
+    <h3 class="mt-3 fw-bold">Veriler İşleniyor...</h3>
+    <p id="loader-log" class="text-muted">Lütfen bekleyin...</p>
+    <div class="progress w-50 mt-2" style="height: 10px;">
+        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+    </div>
 </div>
 
 <script>
-    // Proxy Servisleri
+    // --- GLOBAL DEĞİŞKENLER ---
+    let allCoursesData = []; // Çekilen tüm dersler burada tutulacak
     const PROXIES = [
         "https://api.codetabs.com/v1/proxy?quest=",
         "https://corsproxy.io/?",
         "https://api.allorigins.win/get?url="
     ];
 
+    // --- TEMA AYARLARI ---
+    function toggleTheme() {
+        const body = document.body;
+        const icon = document.getElementById('themeIcon');
+        if(body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            icon.className = 'bi bi-moon-stars-fill';
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            icon.className = 'bi bi-sun-fill';
+        }
+    }
+
+    // --- FETCH FONKSİYONU ---
     async function fetchUrl(url) {
         for(let proxy of PROXIES) {
             try {
@@ -122,166 +230,225 @@
                 const res = await fetch(fullUrl);
                 if(!res.ok) continue;
                 
-                let html = "";
-                // AllOrigins JSON döner, diğerleri text
                 if(proxy.includes('allorigins')) {
                     const json = await res.json();
-                    html = json.contents;
+                    if(json.contents) return json.contents;
                 } else {
-                    html = await res.text();
+                    const text = await res.text();
+                    if(text && text.length > 500) return text;
                 }
-
-                if(html && html.length > 500) return html;
             } catch(e){}
         }
         return null;
     }
 
-    async function startGen() {
-        const urlInp = document.getElementById('urlInput').value.trim();
+    // --- ANA İŞLEM ---
+    async function startProcess() {
+        const urlInputs = document.querySelectorAll('.url-input');
         const startYear = parseInt(document.getElementById('startYear').value);
         const limit = parseInt(document.getElementById('countLimit').value);
         const type = document.getElementById('examType').value;
+        
+        // Dolu olan inputları filtrele
+        const validUrls = Array.from(urlInputs).map(i => i.value.trim()).filter(val => val !== "");
 
-        if(!urlInp) { alert("Link giriniz"); return; }
-
-        // 1. URL'DEN SLUG AYIKLA
-        // Örn: https://aofsoru.com/adl201u-buro-teknolojileri-dersi-sinav-sorulari
-        // Slug: adl201u-buro-teknolojileri-dersi
-        let slug = "";
-        try {
-            let clean = urlInp.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '');
-            // Link zaten bir sınav linki ise temizle
-            slug = clean.split('-sinav-sorulari')[0];
-            // Yıl ve sınav türü varsa temizle
-            slug = slug.replace(/-\d{4}-\d{4}-yili.*/, '');
-            slug = slug.replace(/-ara-sinavi.*/, '');
-            slug = slug.replace(/-donem-sonu.*/, '');
-            slug = slug.replace(/-tek-ders.*/, '');
-            slug = slug.replace(/-yaz-okulu.*/, '');
-        } catch(e) {
-            alert("Link hatalı."); return;
+        if(validUrls.length === 0) {
+            alert("Lütfen en az bir ders linki girin.");
+            return;
         }
 
-        document.getElementById('setup').classList.add('hidden');
+        // Yükleniyor ekranını aç
+        document.getElementById('setup-panel').classList.add('hidden');
         document.getElementById('loader').classList.remove('hidden');
+        
+        allCoursesData = [];
+        let totalOperations = validUrls.length * limit;
+        let completedOperations = 0;
 
-        let questions = [];
-
-        // 2. LİNK ÜRET VE VERİ ÇEK
-        for (let i = 0; i < limit; i++) {
-            let currentY = startYear - i;
-            let nextY = currentY + 1;
+        for (let urlIndex = 0; urlIndex < validUrls.length; urlIndex++) {
+            const rawUrl = validUrls[urlIndex];
             
-            // Otomatik Link Formatı
-            let genUrl = `https://aofsoru.com/${slug}-${currentY}-${nextY}-yili-${type}-sinavi-sinav-sorulari`;
-            
-            document.getElementById('logMsg').innerText = `${currentY}-${nextY} sınavı taranıyor...`;
-            
-            const html = await fetchUrl(genUrl);
-            
-            if(html) {
-                const doc = new DOMParser().parseFromString(html, "text/html");
-                
-                // --- İŞTE SİHİRLİ NOKTA ---
-                // Dedektif kodundan öğrendik ki cevaplar .card div'inin içinde data-value özelliğinde saklı
-                const cards = doc.querySelectorAll('.card');
-                
-                cards.forEach((card, idx) => {
-                    const img = card.querySelector('img.QuestionImg');
-                    
-                    // Cevap anahtarını elementin özelliğinden al
-                    let ans = card.getAttribute('data-value');
-                    
-                    // Yedek kontroller (Bazen data-cevap olabilir)
-                    if(!ans) ans = card.getAttribute('data-cevap');
-                    
-                    if(img) {
-                        let src = img.getAttribute('data-src') || img.getAttribute('src');
-                        if(src) {
-                            if(src.startsWith('//')) src = 'https:'+src;
-                            else if(src.startsWith('/')) src = 'https://image.aofsoru.com'+src;
-                            
-                            questions.push({
-                                img: src,
-                                ans: ans ? ans.trim().toUpperCase() : "Bilinmiyor",
-                                title: `${currentY}-${nextY} ${type.toUpperCase()}`
-                            });
-                        }
-                    }
-                });
-            } else {
-                console.log("Sınav bulunamadı:", genUrl);
+            // Slug Ayıklama (Ders adını URL'den al)
+            let slug = "";
+            try {
+                let clean = rawUrl.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '');
+                slug = clean.split('-sinav-sorulari')[0]
+                            .replace(/-\d{4}-\d{4}-yili.*/, '')
+                            .replace(/-ara-sinavi.*/, '')
+                            .replace(/-donem-sonu.*/, '')
+                            .replace(/-tek-ders.*/, '')
+                            .replace(/-yaz-okulu.*/, '');
+            } catch(e) {
+                console.log("URL hatası:", rawUrl);
+                continue;
             }
-            
-            // Hızlı istek atıp ban yememek için bekle
-            await new Promise(r => setTimeout(r, 600));
+
+            let courseQuestions = [];
+            // Benzersiz Resim Kontrolü (Aynı soruyu 2 kere eklememek için)
+            let uniqueImgSet = new Set();
+
+            // Yılları Döngüye Al
+            for (let i = 0; i < limit; i++) {
+                let currentY = startYear - i;
+                let nextY = currentY + 1;
+                
+                // Progress Bar Güncelle
+                completedOperations++;
+                let percent = (completedOperations / totalOperations) * 100;
+                document.getElementById('progress-bar').style.width = percent + "%";
+                document.getElementById('loader-log').innerText = `Ders: ${slug} | Yıl: ${currentY}-${nextY} taranıyor...`;
+
+                // Link Üret
+                let genUrl = `https://aofsoru.com/${slug}-${currentY}-${nextY}-yili-${type}-sinavi-sinav-sorulari`;
+                
+                const html = await fetchUrl(genUrl);
+
+                if(html) {
+                    const doc = new DOMParser().parseFromString(html, "text/html");
+                    const cards = doc.querySelectorAll('.card');
+                    
+                    cards.forEach((card) => {
+                        const img = card.querySelector('img.QuestionImg');
+                        // Cevap anahtarı 'data-value' içindedir (Dedektif modundan öğrendik)
+                        let ans = card.getAttribute('data-value'); 
+                        if(!ans) ans = card.getAttribute('data-cevap'); // Yedek
+
+                        if(img) {
+                            let src = img.getAttribute('data-src') || img.getAttribute('src');
+                            if(src) {
+                                // URL düzeltme
+                                if(src.startsWith('//')) src = 'https:'+src;
+                                else if(src.startsWith('/')) src = 'https://image.aofsoru.com'+src;
+                                
+                                // Çift soru kontrolü
+                                if(!uniqueImgSet.has(src)) {
+                                    uniqueImgSet.add(src); // Bu resmi kaydettik
+                                    
+                                    courseQuestions.push({
+                                        img: src,
+                                        ans: ans ? ans.trim().toUpperCase() : "Bilinmiyor",
+                                        title: `${currentY}-${nextY} ${type.toUpperCase()}`
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
+                // Hızlı istek atıp banlanmamak için kısa bekleme
+                await new Promise(r => setTimeout(r, 400));
+            }
+
+            // Dersi listeye ekle
+            if(courseQuestions.length > 0) {
+                // Ders adını okunabilir yap (slug -> Title)
+                let courseTitle = slug.replace(/-/g, ' ').toUpperCase();
+                allCoursesData.push({
+                    title: courseTitle,
+                    questions: courseQuestions
+                });
+            }
         }
 
-        if(questions.length > 0) {
-            showQuiz(questions);
+        document.getElementById('loader').classList.add('hidden');
+        
+        if(allCoursesData.length > 0) {
+            document.getElementById('result-panel').classList.remove('hidden');
+            renderSidebar();
+            // İlk dersi otomatik seç
+            showCourse(0);
         } else {
-            alert("Hiçbir sınav bulunamadı. Linki kontrol edin veya 'Başlangıç Yılı'nı değiştirin.");
+            alert("Hiçbir sınav bulunamadı. Linkleri kontrol edip tekrar deneyin.");
             location.reload();
         }
     }
 
-    function showQuiz(data) {
-        document.getElementById('loader').classList.add('hidden');
-        document.getElementById('quiz').classList.remove('hidden');
-        document.getElementById('courseTitle').innerText = document.getElementById('urlInput').value;
-        
-        const c = document.getElementById('qContainer');
-        c.innerHTML = "";
-        
-        data.forEach((q, i) => {
-            c.innerHTML += `
-            <div class="card p-3 mb-5 text-center shadow-sm">
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-3">
-                    <span class="badge bg-secondary">${q.title}</span>
-                    <span class="badge bg-light text-dark border">Soru ${i+1}</span>
-                </div>
-                
-                <div class="bg-light p-2 mb-3 rounded">
-                    <img src="${q.img}" class="question-img" loading="lazy" 
-                        onerror="this.parentElement.innerHTML='<span class=text-danger>Resim Yüklenemedi</span>'">
-                </div>
+    // --- UI FONKSİYONLARI ---
 
-                <div class="mt-2 d-flex justify-content-center flex-wrap" id="optbox-${i}">
-                    ${['A','B','C','D','E'].map(o => 
-                        `<button class="btn btn-circle" onclick="check(this, '${o}', '${q.ans}', ${i})">${o}</button>`
-                    ).join('')}
-                </div>
-                <div id="res-${i}" class="fw-bold mt-3" style="min-height:30px"></div>
-            </div>`;
+    function renderSidebar() {
+        const menu = document.getElementById('sidebar-menu');
+        menu.innerHTML = "";
+        
+        allCoursesData.forEach((course, index) => {
+            const div = document.createElement('div');
+            div.className = "sidebar-item";
+            div.innerHTML = `<i class="bi bi-book me-2"></i> ${course.title} <span class="badge bg-secondary float-end">${course.questions.length}</span>`;
+            div.onclick = () => showCourse(index);
+            div.id = `menu-item-${index}`;
+            menu.appendChild(div);
         });
     }
 
-    window.check = function(btn, sel, correct, id) {
-        const box = document.getElementById(`optbox-${id}`);
-        const res = document.getElementById(`res-${id}`);
-        
-        // Kilitle
-        Array.from(box.children).forEach(b => b.disabled = true);
+    function showCourse(index) {
+        // Aktif menüyü güncelle
+        document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(`menu-item-${index}`).classList.add('active');
 
-        if(correct === "Bilinmiyor" || !correct) {
-            btn.style.background = "#ffc107";
-            res.innerHTML = "<div class='alert alert-warning py-1'>Cevap anahtarı çekilemedi.</div>";
+        const course = allCoursesData[index];
+        document.getElementById('active-course-title').innerText = course.title;
+        document.getElementById('question-count').innerText = `${course.questions.length} Soru`;
+
+        const area = document.getElementById('questions-area');
+        area.innerHTML = "";
+
+        course.questions.forEach((q, i) => {
+            area.innerHTML += `
+            <div class="card mb-5 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">${q.title}</span>
+                    <span class="fw-bold">Soru ${i+1}</span>
+                </div>
+                <div class="card-body text-center">
+                    <div class="p-2 mb-3 border rounded bg-light d-inline-block" style="min-width: 50%;">
+                         <img src="${q.img}" class="question-img" loading="lazy" 
+                             onerror="this.parentElement.innerHTML='<div class=\'text-danger py-3\'>Resim Yüklenemedi</div>'">
+                    </div>
+                    
+                    <div class="mt-2" id="opts-${index}-${i}">
+                        <div class="d-flex justify-content-center flex-wrap gap-2">
+                            ${['A','B','C','D','E'].map(opt => 
+                                `<button class="btn btn-circle" onclick="checkAnswer(this, '${opt}', '${q.ans}', '${index}-${i}')">${opt}</button>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    
+                    <div id="feedback-${index}-${i}" class="mt-3 fw-bold" style="min-height: 25px;"></div>
+                </div>
+            </div>
+            `;
+        });
+        
+        // Sayfanın en üstüne (içerik kısmında) kaydır
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.checkAnswer = function(btn, selected, correct, uniqueId) {
+        const container = document.getElementById(`opts-${uniqueId}`);
+        const feedback = document.getElementById(`feedback-${uniqueId}`);
+        
+        // Butonları kilitle
+        const buttons = container.querySelectorAll('button');
+        buttons.forEach(b => b.disabled = true);
+
+        if(!correct || correct === "Bilinmiyor") {
+            btn.style.backgroundColor = "#ffc107";
+            feedback.innerHTML = "<span class='text-warning'><i class='bi bi-exclamation-triangle'></i> Cevap Anahtarı Gizli</span>";
             return;
         }
 
-        if(sel === correct) {
+        if(selected === correct) {
             btn.classList.add('correct-green');
-            res.innerHTML = "<div class='alert alert-success py-1'>DOĞRU!</div>";
+            feedback.innerHTML = "<span class='text-success'><i class='bi bi-check-circle-fill'></i> DOĞRU!</span>";
         } else {
             btn.classList.add('wrong-red');
-            res.innerHTML = `<div class='alert alert-danger py-1'>YANLIŞ! Doğru Cevap: ${correct}</div>`;
-            // Doğruyu göster
-            Array.from(box.children).forEach(b => {
+            feedback.innerHTML = `<span class='text-danger'><i class='bi bi-x-circle-fill'></i> YANLIŞ! Doğru Cevap: ${correct}</span>`;
+            
+            // Doğru olanı göster
+            buttons.forEach(b => {
                 if(b.innerText === correct) b.classList.add('correct-green');
             });
         }
     }
 </script>
+
 </body>
 </html>
