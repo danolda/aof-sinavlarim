@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF & ATA Sınav Robotu V14 (Hata Kasası)</title>
+    <title>AÖF & ATA Sınav Robotu V15 (Özel Limitli)</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- İkonlar -->
@@ -32,7 +32,7 @@
 
         body { background-color: var(--bg-body); color: var(--text-color); transition: 0.3s; font-family: 'Segoe UI', sans-serif; }
         .card { background-color: var(--bg-card); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 12px; }
-        .form-control, .form-select { background-color: var(--bg-card); color: var(--text-color); border-color: var(--border-color); }
+        .form-control, .form-select, .input-group-text { background-color: var(--bg-card); color: var(--text-color); border-color: var(--border-color); }
         .form-control:focus, .form-select:focus { background-color: var(--bg-card); color: var(--text-color); box-shadow: none; border-color: var(--sidebar-active); }
 
         /* Sidebar & Menu */
@@ -87,7 +87,7 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-3" style="background-color: var(--nav-bg);">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V14</a>
+        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V15</a>
         
         <div class="d-flex mx-auto">
             <div class="uni-tab active" id="tab-anadolu" onclick="switchUni('anadolu')">ANADOLU AÖF</div>
@@ -114,67 +114,117 @@
                 <div class="card p-5 shadow-lg">
                     <div class="text-center mb-4">
                         <h3 class="fw-bold" id="panel-title">Anadolu AÖF Sınav Robotu</h3>
-                        <p class="text-muted" id="panel-desc">Ders linklerini girin, sistem otomatik bulsun.</p>
+                        <p class="text-muted" id="panel-desc">Ders linklerini ve kaç sınav çekileceğini girin.</p>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-12 mb-3">
-                            <label class="form-label fw-bold">Ders Linkleri (Maks 6)</label>
-                            <div class="row g-2">
-                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="Link 1..." ></div>
-                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="Link 2..." ></div>
-                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="Link 3..." ></div>
-                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="Link 4..." ></div>
-                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="Link 5..." ></div>
-                                <div class="col-md-6"><input type="text" class="form-control url-input" placeholder="Link 6..." ></div>
+                            <label class="form-label fw-bold">Ders Linkleri & Sınav Sayısı</label>
+                            
+                            <!-- DİNAMİK URL GİRİŞLERİ -->
+                            <div id="input-container">
+                                <!-- JS ile üretilecek veya manuel 6 tane -->
+                                <div class="input-group mb-2 course-row">
+                                    <span class="input-group-text">1</span>
+                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
+                                    <select class="form-select limit-input" style="max-width: 130px;">
+                                        <option value="2">2 Sınav</option>
+                                        <option value="3">3 Sınav</option>
+                                        <option value="4" selected>4 Sınav</option>
+                                        <option value="5">5 Sınav</option>
+                                        <option value="6">6 Sınav</option>
+                                        <option value="8">8 Sınav</option>
+                                        <option value="10">10 Sınav</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-2 course-row">
+                                    <span class="input-group-text">2</span>
+                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
+                                    <select class="form-select limit-input" style="max-width: 130px;">
+                                        <option value="2">2 Sınav</option>
+                                        <option value="3">3 Sınav</option>
+                                        <option value="4" selected>4 Sınav</option>
+                                        <option value="5">5 Sınav</option>
+                                        <option value="6">6 Sınav</option>
+                                        <option value="8">8 Sınav</option>
+                                        <option value="10">10 Sınav</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-2 course-row">
+                                    <span class="input-group-text">3</span>
+                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
+                                    <select class="form-select limit-input" style="max-width: 130px;">
+                                        <option value="2">2 Sınav</option>
+                                        <option value="3">3 Sınav</option>
+                                        <option value="4" selected>4 Sınav</option>
+                                        <option value="5">5 Sınav</option>
+                                        <option value="6">6 Sınav</option>
+                                        <option value="8">8 Sınav</option>
+                                        <option value="10">10 Sınav</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-2 course-row">
+                                    <span class="input-group-text">4</span>
+                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
+                                    <select class="form-select limit-input" style="max-width: 130px;">
+                                        <option value="2">2 Sınav</option>
+                                        <option value="3">3 Sınav</option>
+                                        <option value="4" selected>4 Sınav</option>
+                                        <option value="5">5 Sınav</option>
+                                        <option value="6">6 Sınav</option>
+                                        <option value="8">8 Sınav</option>
+                                        <option value="10">10 Sınav</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-2 course-row">
+                                    <span class="input-group-text">5</span>
+                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
+                                    <select class="form-select limit-input" style="max-width: 130px;">
+                                        <option value="2">2 Sınav</option>
+                                        <option value="3">3 Sınav</option>
+                                        <option value="4" selected>4 Sınav</option>
+                                        <option value="5">5 Sınav</option>
+                                        <option value="6">6 Sınav</option>
+                                        <option value="8">8 Sınav</option>
+                                        <option value="10">10 Sınav</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-2 course-row">
+                                    <span class="input-group-text">6</span>
+                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
+                                    <select class="form-select limit-input" style="max-width: 130px;">
+                                        <option value="2">2 Sınav</option>
+                                        <option value="3">3 Sınav</option>
+                                        <option value="4" selected>4 Sınav</option>
+                                        <option value="5">5 Sınav</option>
+                                        <option value="6">6 Sınav</option>
+                                        <option value="8">8 Sınav</option>
+                                        <option value="10">10 Sınav</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Anadolu Ayarları -->
-                    <div id="settings-anadolu" class="row g-3 mt-2">
-                        <div class="col-md-4">
-                            <label class="fw-bold">Başlangıç</label>
+                    <!-- Ortak Ayarlar -->
+                    <div class="row g-3 mt-2">
+                        <!-- Anadolu İçin Başlangıç Yılı -->
+                        <div id="settings-anadolu-year" class="col-md-6">
+                            <label class="fw-bold">Başlangıç Yılı (Sadece Anadolu)</label>
                             <select id="startYear" class="form-select">
                                 <option value="2024">2024 - 2025</option>
                                 <option value="2023">2023 - 2024</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="fw-bold">Geriye Dönük</label>
-                            <select id="countLimit" class="form-select">
-                                <option value="2">Son 2 Sınav</option>
-                                <option value="4" selected>Son 4 Sınav</option>
-                                <option value="8">Son 8 Sınav</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="fw-bold">Tür</label>
+                        
+                        <!-- Ortak Sınav Türü -->
+                        <div class="col-md-6">
+                            <label class="fw-bold">Sınav Türü (Hepsi İçin)</label>
                             <select id="examType" class="form-select">
                                 <option value="ara">Ara Sınav (Vize)</option>
-                                <option value="donem-sonu">Dönem Sonu (Final)</option>
+                                <option value="final">Final / Dönem Sonu</option>
                                 <option value="tek-ders">Tek Ders</option>
                                 <option value="yaz-okulu">Yaz Okulu</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- ATA Ayarları -->
-                    <div id="settings-ata" class="row g-3 mt-2 hidden">
-                        <div class="col-md-6">
-                            <label class="fw-bold">Kaç Sınav?</label>
-                            <select id="ataCountLimit" class="form-select">
-                                <option value="2">Son 2 Sınav</option>
-                                <option value="4" selected>Son 4 Sınav</option>
-                                <option value="6">Son 6 Sınav</option>
-                                <option value="10">Tümü</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="fw-bold">Sınav Türü</label>
-                            <select id="ataExamType" class="form-select">
-                                <option value="ara">Ara Sınav (Vize)</option>
-                                <option value="final">Final / Bütünleme</option>
                             </select>
                         </div>
                     </div>
@@ -199,10 +249,8 @@
                         <h5 class="fw-bold m-0">Ders Listesi</h5>
                     </div>
                     
-                    <!-- HATA KASASI BUTONU -->
                     <div id="sidebar-menu-mistakes" class="mb-3"></div>
                     <hr>
-                    <!-- NORMAL DERSLER -->
                     <div id="sidebar-menu"></div>
                     
                     <button class="btn btn-danger w-100 mt-4" onclick="fullReset()">
@@ -243,7 +291,7 @@
     // --- GLOBAL ---
     let currentUni = 'anadolu';
     let allCoursesData = [];
-    let wrongBank = []; // Yanlış Sorular Havuzu
+    let wrongBank = []; 
     const PROXIES = [
         "https://api.codetabs.com/v1/proxy?quest=",
         "https://corsproxy.io/?",
@@ -268,7 +316,7 @@
             document.getElementById('globalResetBtn').classList.remove('hidden');
             renderSidebar();
             if(allCoursesData.length > 0) showCourse(0);
-            else showMistakes(); // Sadece yanlışlar varsa orayı aç
+            else showMistakes(); 
         }
     };
 
@@ -280,13 +328,11 @@
 
         if (uni === 'anadolu') {
             document.getElementById('panel-title').innerText = "Anadolu AÖF Sınav Robotu";
-            document.getElementById('settings-anadolu').classList.remove('hidden');
-            document.getElementById('settings-ata').classList.add('hidden');
+            document.getElementById('settings-anadolu-year').classList.remove('hidden');
             document.querySelectorAll('.url-input')[0].placeholder = "https://aofsoru.com/...";
         } else {
             document.getElementById('panel-title').innerText = "ATA AÖF Sınav Robotu";
-            document.getElementById('settings-anadolu').classList.add('hidden');
-            document.getElementById('settings-ata').classList.remove('hidden');
+            document.getElementById('settings-anadolu-year').classList.add('hidden');
             document.querySelectorAll('.url-input')[0].placeholder = "https://ataaofsoru.com/...";
         }
     }
@@ -310,15 +356,25 @@
 
     // --- ANA İŞLEM ---
     async function startProcess() {
-        const urlInputs = document.querySelectorAll('.url-input');
-        const validUrls = Array.from(urlInputs).map(i => i.value.trim()).filter(val => val !== "");
-        if(validUrls.length === 0) { alert("Lütfen en az bir link girin."); return; }
+        // Yeni Mantık: Tüm satırları gez ve dolu olanları limitleriyle beraber al
+        let tasks = [];
+        const rows = document.querySelectorAll('.course-row');
+        
+        rows.forEach(row => {
+            const url = row.querySelector('.url-input').value.trim();
+            const limit = parseInt(row.querySelector('.limit-input').value);
+            if(url !== "") {
+                tasks.push({ url: url, limit: limit });
+            }
+        });
+
+        if(tasks.length === 0) { alert("Lütfen en az bir link girin."); return; }
 
         document.getElementById('setup-panel').classList.add('hidden');
         document.getElementById('loader').classList.remove('hidden');
         
-        if (currentUni === 'anadolu') await processAnadolu(validUrls);
-        else await processAta(validUrls);
+        if (currentUni === 'anadolu') await processAnadolu(tasks);
+        else await processAta(tasks);
 
         document.getElementById('loader').classList.add('hidden');
 
@@ -333,19 +389,21 @@
         }
     }
 
-    async function processAnadolu(urls) {
+    // --- ANADOLU MANTIĞI (ÖZEL LİMİT) ---
+    async function processAnadolu(tasks) {
         const startYear = parseInt(document.getElementById('startYear').value);
-        const limit = parseInt(document.getElementById('countLimit').value);
         const type = document.getElementById('examType').value;
-        const totalOps = urls.length * limit;
+        
+        // Toplam işlem sayısını hesapla (Her dersin kendi limiti kadar)
+        let totalOps = tasks.reduce((acc, task) => acc + task.limit, 0);
         let completed = 0;
 
-        for (let url of urls) {
+        for (let task of tasks) {
             let slug = "";
-            try { slug = url.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '').split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); } catch(e) { continue; }
+            try { slug = task.url.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '').split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); } catch(e) { continue; }
             let questionMap = new Map();
 
-            for (let i = 0; i < limit; i++) {
+            for (let i = 0; i < task.limit; i++) {
                 let currentY = startYear - i;
                 let nextY = currentY + 1;
                 completed++;
@@ -379,15 +437,18 @@
         }
     }
 
-    async function processAta(urls) {
-        const limit = parseInt(document.getElementById('ataCountLimit').value);
-        const typeKey = document.getElementById('ataExamType').value;
-        const totalOps = urls.length * limit; 
+    // --- ATA MANTIĞI (ÖZEL LİMİT) ---
+    async function processAta(tasks) {
+        let typeKey = document.getElementById('examType').value;
+        if(typeKey === 'donem-sonu') typeKey = 'final';
+        
+        // ATA da linkleri önce tarıyoruz, bu yüzden tahmini totalOps
+        let totalOps = tasks.reduce((acc, task) => acc + task.limit, 0) + tasks.length;
         let completed = 0;
 
-        for (let url of urls) {
+        for (let task of tasks) {
             updateLoader(completed, totalOps, `Ders taranıyor...`);
-            const mainHtml = await fetchUrl(url);
+            const mainHtml = await fetchUrl(task.url);
             if(!mainHtml) continue;
 
             const mainDoc = new DOMParser().parseFromString(mainHtml, "text/html");
@@ -399,19 +460,17 @@
                 const href = a.getAttribute('href');
                 const text = (a.getAttribute('title') || a.innerText || "").toUpperCase();
                 
-                // --- ATA FİLTRE MANTIĞI (DÜZELTİLDİ) ---
                 if(text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
 
-                if (typeKey === 'ara') {
-                    // Ara sınav istiyorsa BÜTÜNLEME veya FİNAL olmamalı
-                    if (!text.includes('ARA')) return;
-                    if (text.includes('BÜTÜNLEME') || text.includes('FİNAL')) return;
+                let keyword = typeKey === 'ara' ? 'ARA' : 'FİNAL';
+                if (keyword === 'FİNAL') { 
+                    if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) keyword = 'MATCH'; 
                 } else {
-                    // Final istiyorsa FİNAL, BÜTÜNLEME veya DÖNEM SONU olabilir
-                    if (!text.includes('FİNAL') && !text.includes('BÜTÜNLEME') && !text.includes('DÖNEM SONU')) return;
+                    // Ara sınav ise Final veya Bütünleme kelimeleri OLMAMALI
+                    if(text.includes('FİNAL') || text.includes('BÜTÜNLEME')) return;
                 }
                 
-                if (href) {
+                if (href && (text.includes(keyword) || keyword === 'MATCH')) {
                     const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
                     const year = yearMatch ? parseInt(yearMatch[1]) : 0;
                     let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
@@ -420,12 +479,13 @@
             });
 
             links.sort((a,b) => b.year - a.year);
-            links = links.slice(0, limit);
+            // --- BURADA DERSİN KENDİ LİMİTİNİ KULLANIYORUZ ---
+            links = links.slice(0, task.limit);
 
             let questionMap = new Map();
             for (let link of links) {
                 completed++;
-                updateLoader(completed, totalOps+limit, `${link.year} sınavı...`);
+                updateLoader(completed, totalOps, `${link.year} sınavı...`);
                 const examHtml = await fetchUrl(link.url);
                 if(examHtml) {
                     const doc = new DOMParser().parseFromString(examHtml, "text/html");
@@ -475,7 +535,6 @@
         menu.innerHTML = "";
         mistakemenu.innerHTML = "";
 
-        // HATA KASASI BUTONU
         const mistakeDiv = document.createElement('div');
         mistakeDiv.className = "sidebar-item sidebar-mistakes";
         mistakeDiv.innerHTML = `<i class="bi bi-exclamation-octagon-fill"></i> YANLIŞLARIM <span class="badge bg-danger">${wrongBank.length}</span>`;
@@ -506,7 +565,6 @@
         currentCourseIndex = index;
         document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
         document.getElementById(`menu-item-${index}`).classList.add('active');
-
         const course = allCoursesData[index];
         renderExam(course.title, course.questions);
     }
@@ -515,7 +573,6 @@
         isMistakeView = true;
         document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
         document.getElementById(`menu-item-mistakes`).classList.add('active');
-
         if(wrongBank.length === 0) {
             document.getElementById('active-course-title').innerText = "Yanlışlarım";
             document.getElementById('question-count').innerText = "0 Soru";
@@ -579,7 +636,6 @@
             
             if(!isMistakeView) {
                 allCoursesData[currentCourseIndex].stats.wrong++;
-                // Yanlış bankasına ekle (Eğer yoksa)
                 let currentQ = allCoursesData[currentCourseIndex].questions[qIdx];
                 let exists = wrongBank.some(w => w.img === currentQ.img);
                 if(!exists) {
@@ -594,11 +650,8 @@
 
     function resetCurrentCourse() {
         if(!confirm(isMistakeView ? "Yanlışlar kasası temizlensin mi?" : "Bu dersteki cevaplar silinecek?")) return;
-        
         if(isMistakeView) {
-            wrongBank = [];
-            localStorage.removeItem('aof_wrong_bank');
-            showMistakes();
+            wrongBank = []; localStorage.removeItem('aof_wrong_bank'); showMistakes();
         } else {
             allCoursesData[currentCourseIndex].stats.correct = 0;
             allCoursesData[currentCourseIndex].stats.wrong = 0;
