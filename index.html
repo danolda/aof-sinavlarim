@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF Sınav Robotu (V4 - Script Analiz)</title>
+    <title>AÖF Sınav Robotu (V5 - Deep Scan)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
     <style>
-        body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .hidden { display: none !important; }
         
-        .card { border: none; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); overflow: hidden; }
         .question-img { 
             max-width: 100%; 
             border: 1px solid #dee2e6; 
@@ -20,14 +20,17 @@
             background-color: #fff;
         }
         
+        /* Şık Butonları */
         .btn-circle { 
-            width: 50px; height: 50px; border-radius: 50%; padding: 0; 
-            font-size: 1.2rem; font-weight: bold; margin: 0 8px; 
-            border: 2px solid #6c757d; color: #6c757d; background: white; 
+            width: 55px; height: 55px; border-radius: 50%; padding: 0; 
+            font-size: 1.3rem; font-weight: bold; margin: 0 10px; 
+            border: 2px solid #adb5bd; color: #495057; background: white; 
             transition: all 0.2s;
         }
-        .btn-circle:hover { background-color: #6c757d; color: white; transform: scale(1.1); }
-        
+        .btn-circle:hover { background-color: #495057; color: white; transform: scale(1.1); }
+        .btn-circle:disabled { opacity: 1; } /* Cevap göründüğünde soluklaşmasın */
+
+        /* Cevap Renkleri */
         .correct-green { background-color: #198754 !important; color: white !important; border-color: #198754 !important; }
         .wrong-red { background-color: #dc3545 !important; color: white !important; border-color: #dc3545 !important; }
         
@@ -39,8 +42,7 @@
         }
         .log-text { font-size: 0.9rem; color: #6c757d; margin-top: 10px; font-family: monospace; }
         
-        .course-item { transition: transform 0.2s; border-left: 6px solid #0d6efd; }
-        .course-item:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .year-badge { position: absolute; top: 10px; right: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -52,25 +54,23 @@
         <div class="col-lg-8">
             <div class="card p-5">
                 <div class="text-center mb-5">
-                    <h2 class="fw-bold text-primary">AÖF Sınav Robotu</h2>
-                    <p class="text-muted">Linkleri girin, soruları ve gizli cevapları çekelim.</p>
+                    <h2 class="fw-bold text-primary">AÖF Sınav Robotu V5</h2>
+                    <p class="text-muted">Gelişmiş yıl filtreleme ve derin script analizi.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <label class="form-label fw-bold text-dark">Ders Linki (Aofsoru.com)</label>
-                    <div id="urlContainer">
-                        <input type="text" class="form-control mb-2 url-input form-control-lg" placeholder="https://aofsoru.com/..." >
-                    </div>
+                    <label class="form-label fw-bold">Ders Linki</label>
+                    <input type="text" class="form-control form-control-lg url-input" placeholder="https://aofsoru.com/..." >
                 </div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Dönem Limiti</label>
+                        <label class="form-label fw-bold">Dönem Sayısı</label>
                         <select id="yearLimit" class="form-select form-select-lg">
+                            <option value="3">Son 3 Sınav</option>
                             <option value="4" selected>Son 4 Sınav</option>
                             <option value="5">Son 5 Sınav</option>
-                            <option value="8">Son 8 Sınav</option>
-                            <option value="20">Tüm Sınavlar</option>
+                            <option value="10">Tümü</option>
                         </select>
                     </div>
                     <div class="col-md-6">
@@ -82,8 +82,8 @@
                     </div>
                 </div>
 
-                <button class="btn btn-primary w-100 btn-lg mt-5 py-3 fw-bold" onclick="startProcess()">
-                    Sınavı Oluştur
+                <button class="btn btn-primary w-100 btn-lg mt-5 py-3 fw-bold shadow" onclick="startProcess()">
+                    Sınavları Getir
                 </button>
             </div>
         </div>
@@ -93,22 +93,22 @@
     <div id="course-panel" class="hidden">
         <h3 class="text-center mb-4 fw-bold">Bulunan Sınavlar</h3>
         <div id="course-list" class="d-grid gap-3 col-lg-8 mx-auto"></div>
-        <div class="col-lg-8 mx-auto mt-4">
-            <button class="btn btn-secondary w-100" onclick="location.reload()">Yeni Sorgu Yap</button>
+        <div class="col-lg-8 mx-auto mt-4 text-center">
+            <button class="btn btn-outline-secondary" onclick="location.reload()">Yeni Arama</button>
         </div>
     </div>
 
-    <!-- 3. SORU ÇÖZME EKRANI -->
+    <!-- 3. SORU EKRANI -->
     <div id="quiz-panel" class="hidden">
         <div class="d-flex justify-content-between align-items-center mb-4 sticky-top bg-white p-3 shadow-sm rounded z-3">
             <h5 id="currentCourseTitle" class="m-0 text-truncate fw-bold text-primary">Ders Adı</h5>
-            <button class="btn btn-outline-danger btn-sm px-3" onclick="switchPanel('course-panel')">Kapat</button>
+            <button class="btn btn-danger btn-sm px-3" onclick="switchPanel('course-panel')">Kapat</button>
         </div>
         
         <div id="questions-container" class="col-lg-8 mx-auto pb-5"></div>
         
         <div class="fixed-bottom bg-white border-top p-3 text-center shadow-lg">
-            <button class="btn btn-success px-5" onclick="switchPanel('course-panel')">Sınavı Bitir ve Dön</button>
+            <button class="btn btn-success px-5 fw-bold" onclick="switchPanel('course-panel')">Bitir ve Listeye Dön</button>
         </div>
     </div>
 
@@ -117,15 +117,15 @@
 <!-- YÜKLENİYOR -->
 <div id="loading" class="loading-overlay hidden">
     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <h4 class="mt-4 fw-bold">Veriler İşleniyor</h4>
-    <p id="loadingLog" class="log-text">Bağlantı kuruluyor...</p>
+    <h4 class="mt-4 fw-bold">İşleniyor</h4>
+    <p id="loadingLog" class="log-text">Başlatılıyor...</p>
 </div>
 
 <script>
     const BASE_URL = "https://aofsoru.com";
     let examData = [];
 
-    // Proxy Servisleri (Sırasıyla dener)
+    // Proxy Servisleri
     const PROXIES = [
         { url: "https://api.codetabs.com/v1/proxy?quest=", type: "text" }, 
         { url: "https://api.allorigins.win/get?url=", type: "json" },
@@ -165,52 +165,50 @@
     }
 
     async function startProcess() {
-        const inputs = document.querySelectorAll('.url-input');
-        const urls = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== "");
+        const input = document.querySelector('.url-input');
+        const url = input.value.trim();
         const yearLimit = parseInt(document.getElementById('yearLimit').value);
         const examType = document.getElementById('examType').value;
 
-        if (urls.length === 0) { alert("Lütfen ders linkini yapıştırın."); return; }
+        if (!url) { alert("Lütfen link girin."); return; }
 
         showLoading(true);
         examData = [];
 
-        for (let url of urls) {
-            if (!url.startsWith('http')) url = 'https://' + url;
+        let targetUrl = url.startsWith('http') ? url : 'https://' + url;
+        
+        updateLog("Ders sayfası analiz ediliyor...");
+        const courseHtml = await fetchWithFallback(targetUrl);
+        
+        if (!courseHtml) {
+            alert("Siteye erişilemedi.");
+            showLoading(false);
+            return;
+        }
 
-            updateLog("Ders ana sayfası analiz ediliyor...");
-            const courseHtml = await fetchWithFallback(url);
-            
-            if (!courseHtml) {
-                alert("Siteye erişilemedi. Lütfen sayfayı yenileyip tekrar deneyin.");
-                continue;
-            }
+        const doc = parseHtml(courseHtml);
+        let title = doc.querySelector('h1')?.innerText.replace('Soruları', '').trim() || "Ders";
+        
+        updateLog("Sınavlar filtreleniyor...");
+        const links = getExamLinks(doc, examType, yearLimit);
 
-            const doc = parseHtml(courseHtml);
-            let title = doc.querySelector('h1')?.innerText.replace('Soruları', '').trim() || "Ders";
-            
-            updateLog("Sınav linkleri taranıyor...");
-            const links = getExamLinks(doc, examType, yearLimit);
-
-            if (links.length > 0) {
-                updateLog(`${links.length} adet sınav bulundu. Sorular çekiliyor...`);
-                const questions = await scrapeQuestionsFromLinks(links);
-                if (questions.length > 0) {
-                    examData.push({ title, questions });
-                }
+        if (links.length > 0) {
+            updateLog(`${links.length} sınav bulunudu. Sorular çekiliyor...`);
+            const questions = await scrapeQuestionsFromLinks(links);
+            if (questions.length > 0) {
+                examData.push({ title, questions });
+                renderCourses();
+                switchPanel('course-panel');
             } else {
-                 alert("Seçilen kriterlere uygun sınav linki bulunamadı. (Yıl veya Sınav Türü ayarını kontrol edin)");
+                alert("Soru çekilemedi. Site yapısı değişmiş olabilir.");
             }
+        } else {
+            alert("Kriterlere uygun sınav linki bulunamadı.");
         }
-
         showLoading(false);
-        if (examData.length > 0) {
-            renderCourses();
-            switchPanel('course-panel');
-        }
     }
 
-    // --- YIL BULMA VE FİLTRELEME (GÜNCELLENDİ) ---
+    // --- YIL MANTIĞI DÜZELTİLDİ ---
     function getExamLinks(doc, type, limit) {
         const targetText = type === "vize" ? "ARA" : "DÖNEM SONU";
         let validLinks = [];
@@ -220,67 +218,84 @@
             const title = (link.getAttribute('title') || "").toUpperCase();
             const href = link.getAttribute('href');
             
-            // Link başlığında ARA veya DÖNEM SONU geçiyorsa
             if (title.includes(targetText) && href) {
-                
-                // Yıl Bulma (Regex Güncellendi: Sadece ilk 4 haneli sayıyı alır)
-                // Örn: "2024-2025" -> 2024 alır. "2023 Yaz" -> 2023 alır.
-                const yearMatch = title.match(/(\d{4})/);
+                // Sadece 4 haneli yılı al (Örn: 2023)
+                const yearMatch = title.match(/(\d{4})/); 
                 let year = yearMatch ? parseInt(yearMatch[0]) : 0;
                 
-                // URL düzeltme
                 let fullUrl = href.startsWith('http') ? href : BASE_URL + (href.startsWith('/') ? '' : '/') + href;
                 
                 validLinks.push({ url: fullUrl, year, title });
             }
         });
         
-        // Yıla göre yeniden eskiye sırala
+        // Yıla göre sırala (En yeni en üstte)
         validLinks.sort((a, b) => b.year - a.year);
         
-        // Benzersiz URL'leri filtrele (Aynı sınavı iki kere eklemesin)
+        // --- ÖNEMLİ: EŞSİZLİK KONTROLÜ ---
+        // Aynı URL'yi birden fazla eklememek için:
         const uniqueLinks = [];
         const seenUrls = new Set();
-        for(const item of validLinks) {
-            if(!seenUrls.has(item.url)){
+        
+        for (const item of validLinks) {
+            if (!seenUrls.has(item.url)) {
                 seenUrls.add(item.url);
                 uniqueLinks.push(item);
             }
         }
 
-        // Limiti uygula
+        // Limit kadar al (Artık 0,1,2,3 -> 4 tane kesin alır)
         return uniqueLinks.slice(0, limit);
     }
 
-    // --- SORU VE GİZLİ CEVAP ÇEKME ---
+    // --- CEVAP ANAHTARI ANALİZİ ---
     async function scrapeQuestionsFromLinks(links) {
         let allQuestions = [];
+        
         for (let link of links) {
-            updateLog(`İşleniyor: ${link.title}`);
-            await new Promise(r => setTimeout(r, 800)); // Bekleme süresi
+            updateLog(`İşleniyor: ${link.year} Sınavı`);
+            await new Promise(r => setTimeout(r, 800)); // Engel yememek için bekle
             
             const html = await fetchWithFallback(link.url);
             if (!html) continue;
 
-            // 1. Cevap Anahtarını Script İçinden Bul (Regex ile)
-            // Site genellikle JSON formatında "Cevap":"A" şeklinde veri saklar.
-            // Regex: "Cevap" : "A"  veya 'Cevap':'A' gibi desenleri arar.
-            // AOF siteleri genelde soruları sırayla basar, script de sırayla olur.
+            const doc = parseHtml(html);
             
-            let scriptAnswers = [];
-            // Regex açıklaması: "Cevap" kelimesi, ardından : , ardından " veya ' , ardından A-E arası harf
-            const answerRegex = /["']?Cevap["']?\s*[:=]\s*["']([A-E])["']/gi;
-            let match;
-            while ((match = answerRegex.exec(html)) !== null) {
-                scriptAnswers.push(match[1]);
+            // 1. STRATEJİ: Sayfadaki Scriptlerde JSON Dizi Arama
+            // Site genellikle cevapları ["A", "C", "D"] gibi bir dizi içinde tutar.
+            let answers = [];
+            
+            // Tüm script taglerini al ve içlerinde cevap anahtarına benzeyen yapıları ara
+            const scripts = doc.querySelectorAll('script');
+            for(let script of scripts) {
+                const content = script.innerText;
+                if(!content) continue;
+
+                // Regex: ["A", "B", "C"...] gibi duran yapıları bul
+                // Bu regex, içinde sadece A-E harfleri olan virgülle ayrılmış dizileri arar.
+                const arrayRegex = /\[\s*(["'][A-E]["']\s*,?\s*){5,}\]/g; 
+                const match = content.match(arrayRegex);
+                
+                if (match) {
+                    // En uzun eşleşen diziyi muhtemelen cevap anahtarıdır
+                    const potentialKey = match.reduce((a, b) => a.length > b.length ? a : b);
+                    // Temizle ve diziye çevir
+                    answers = potentialKey.replace(/[\[\]"']/g, '').split(',').map(s => s.trim());
+                    if(answers.length > 5) break; // Bulduysak döngüden çık
+                }
             }
 
-            // HTML'i parse et
-            const doc = parseHtml(html);
-            const imgs = doc.querySelectorAll('img.QuestionImg');
+            // 2. STRATEJİ (Yedek): Eğer dizi bulamazsa, tekil değişkenleri ara (cvp='A')
+            if (answers.length === 0) {
+                 const singleRegex = /["']?Cevap["']?\s*[:=]\s*["']([A-E])["']/gi;
+                 let m;
+                 while ((m = singleRegex.exec(html)) !== null) {
+                     answers.push(m[1]);
+                 }
+            }
 
+            const imgs = doc.querySelectorAll('img.QuestionImg');
             imgs.forEach((img, index) => {
-                // Resim Kaynağı
                 let src = img.getAttribute('data-src') || img.getAttribute('src');
                 if (src) {
                     src = src.trim();
@@ -288,24 +303,26 @@
                     else if (src.startsWith('/')) src = 'https://image.aofsoru.com' + src;
                     else if (!src.startsWith('http')) src = BASE_URL + '/' + src;
 
-                    // Cevap Eşleştirme
-                    // Eğer script'ten cevap bulduysak sırasına göre al, yoksa "Bilinmiyor"
-                    let answer = "Bilinmiyor";
-                    if (scriptAnswers.length > index) {
-                        answer = scriptAnswers[index].toUpperCase();
-                    } else {
-                        // Yedek plan: Belki cevap HTML'dedir (Nadir)
-                        let parent = img.closest('.card') || img.closest('.card-body') || img.parentElement.parentElement;
+                    // Cevabı belirle
+                    let correctAnswer = "Bilinmiyor";
+                    
+                    // Diziden çek
+                    if (answers.length > index) {
+                        correctAnswer = answers[index].toUpperCase();
+                    } 
+                    // HTML'den çek (Yeşil buton kontrolü - çok nadir çalışır ama kalsın)
+                    else {
+                        let parent = img.closest('.card') || img.parentElement.parentElement;
                         if(parent) {
                              const btn = parent.querySelector('.btn-success');
-                             if(btn) answer = btn.innerText.trim();
+                             if(btn) correctAnswer = btn.innerText.trim();
                         }
                     }
 
                     allQuestions.push({
                         image: src,
-                        answer: answer,
-                        info: link.title
+                        answer: correctAnswer,
+                        info: `${link.year} - ${link.title}`
                     });
                 }
             });
@@ -313,19 +330,19 @@
         return allQuestions;
     }
 
-    // --- ARAYÜZ İŞLEMLERİ ---
+    // --- UI ---
     function renderCourses() {
         const list = document.getElementById('course-list');
         list.innerHTML = "";
         examData.forEach((course, index) => {
             list.innerHTML += `
-                <div class="card p-4 shadow-sm course-item" onclick="startQuiz(${index})" style="cursor:pointer;">
+                <div class="card p-4 shadow-sm" onclick="startQuiz(${index})" style="cursor:pointer; border-left:6px solid #0d6efd">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h5 class="m-0 fw-bold text-dark">${course.title}</h5>
                             <small class="text-muted">${course.questions.length} Soru Hazır</small>
                         </div>
-                        <i class="material-icons text-primary" style="font-size:2rem">play_circle_filled</i>
+                        <i class="material-icons text-primary" style="font-size:2rem">play_arrow</i>
                     </div>
                 </div>`;
         });
@@ -340,24 +357,24 @@
         course.questions.forEach((q, i) => {
             container.innerHTML += `
                 <div class="card mb-5">
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <span class="badge bg-secondary me-2">${i+1}</span> 
+                    <div class="card-header bg-white py-3 d-flex justify-content-between">
+                        <span class="badge bg-dark rounded-pill">Soru ${i+1}</span>
                         <small class="text-muted fw-bold">${q.info}</small>
                     </div>
                     <div class="card-body text-center p-0">
-                        <div style="background:#f8f9fa; padding:20px; min-height:200px; display:flex; align-items:center; justify-content:center;">
+                        <div class="bg-light p-3 border-bottom">
                             <img src="${q.image}" class="question-img shadow-sm" loading="lazy" 
-                                 onerror="this.onerror=null; this.parentElement.innerHTML='<span class=text-danger>Resim Yüklenemedi</span>';">
+                                 onerror="this.parentElement.innerHTML='<div class=\'alert alert-danger\'>Resim Yüklenemedi</div>';">
                         </div>
                         
-                        <div class="py-4" id="opts-${i}">
+                        <div class="py-4 px-2" id="opts-${i}">
                             <div class="d-flex justify-content-center flex-wrap gap-2">
                                 ${['A','B','C','D','E'].map(opt => 
                                     `<button class="btn btn-circle" onclick="check(this, '${opt}', '${q.answer}', ${i})">${opt}</button>`
                                 ).join('')}
                             </div>
                         </div>
-                        <div id="fb-${i}" class="pb-3 fw-bold" style="min-height:30px"></div>
+                        <div id="fb-${i}" class="pb-3 fw-bold" style="min-height:40px"></div>
                     </div>
                 </div>`;
         });
@@ -368,24 +385,19 @@
     window.check = function(btn, selected, correct, id) {
         const parent = document.getElementById(`opts-${id}`);
         const fb = document.getElementById(`fb-${id}`);
-        
-        // Butonları kilitle
         parent.querySelectorAll('button').forEach(b => b.disabled = true);
 
-        // Cevap Kontrolü
         if (!correct || correct === "Bilinmiyor") {
-            fb.innerHTML = "<div class='alert alert-warning d-inline-block py-1 px-3'>Cevap Anahtarı Çekilemedi</div>";
+            fb.innerHTML = "<div class='alert alert-warning d-inline-block'>Cevap anahtarı sistemde gizli.</div>";
             return;
         }
 
         if (selected === correct) {
             btn.classList.add('correct-green');
-            fb.innerHTML = "<div class='alert alert-success d-inline-block py-1 px-3'><i class='material-icons align-middle' style='font-size:1.2rem'>check</i> Doğru!</div>";
+            fb.innerHTML = "<div class='alert alert-success d-inline-block px-4'><i class='material-icons align-middle'>check</i> Doğru!</div>";
         } else {
             btn.classList.add('wrong-red');
-            fb.innerHTML = `<div class='alert alert-danger d-inline-block py-1 px-3'><i class='material-icons align-middle' style='font-size:1.2rem'>close</i> Yanlış. Doğru Cevap: ${correct}</div>`;
-            
-            // Doğru şıkkı göster
+            fb.innerHTML = `<div class='alert alert-danger d-inline-block px-4'><i class='material-icons align-middle'>close</i> Yanlış. Cevap: ${correct}</div>`;
             Array.from(parent.children).forEach(b => {
                 if(b.innerText.trim() === correct) b.classList.add('correct-green');
             });
