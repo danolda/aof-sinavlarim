@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF & ATA Sınav Robotu V12</title>
+    <title>AÖF & ATA Sınav Robotu V13 (Filtreli)</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- İkonlar -->
@@ -82,7 +82,7 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-3" style="background-color: var(--nav-bg);">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V12</a>
+        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V13</a>
         
         <!-- Üniversite Seçimi -->
         <div class="d-flex mx-auto">
@@ -328,7 +328,7 @@
         }
     }
 
-    // --- ANADOLU AÖF MANTIĞI (V11) ---
+    // --- ANADOLU AÖF MANTIĞI ---
     async function processAnadolu(urls) {
         const startYear = parseInt(document.getElementById('startYear').value);
         const limit = parseInt(document.getElementById('countLimit').value);
@@ -385,11 +385,11 @@
         }
     }
 
-    // --- ATA AÖF MANTIĞI (YENİ) ---
+    // --- ATA AÖF MANTIĞI (FİLTRELİ) ---
     async function processAta(urls) {
         const limit = parseInt(document.getElementById('ataCountLimit').value);
-        const typeKey = document.getElementById('ataExamType').value; // 'ara' veya 'final'
-        const totalOps = urls.length * limit; // Tahmini
+        const typeKey = document.getElementById('ataExamType').value;
+        const totalOps = urls.length * limit; 
         let completed = 0;
 
         for (let url of urls) {
@@ -401,21 +401,22 @@
             let title = mainDoc.querySelector('h1')?.innerText || "ATA Ders";
             title = title.replace('Soruları', '').trim();
 
-            // Linkleri Bul (ID tabanlı olduğu için sayfadan çekiyoruz)
             let links = [];
             mainDoc.querySelectorAll('a').forEach(a => {
                 const href = a.getAttribute('href');
                 const text = (a.getAttribute('title') || a.innerText || "").toUpperCase();
                 
-                // Filtreleme: ARA veya FİNAL
+                // --- DENEME SINAVI FİLTRESİ ---
+                if(text.includes('DENEME') || text.includes('ONLİNE') || (href && href.includes('deneme'))) {
+                    return; // Bu linki atla
+                }
+
                 let keyword = typeKey === 'ara' ? 'ARA' : 'FİNAL';
                 if (!keyword.includes('FİNAL')) { 
-                    // Final seçilirse Bütünleme de gelebilir
                     if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) keyword = 'MATCH'; 
                 }
                 
                 if (href && (text.includes(keyword) || keyword === 'MATCH')) {
-                    // Yılı bulmaya çalış
                     const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
                     const year = yearMatch ? parseInt(yearMatch[1]) : 0;
                     
@@ -424,13 +425,11 @@
                 }
             });
 
-            // Yıla göre sırala ve limiti al
             links.sort((a,b) => b.year - a.year);
             links = links.slice(0, limit);
 
             let questionMap = new Map();
 
-            // Sınavlara gir
             for (let link of links) {
                 completed++;
                 updateLoader(completed, totalOps+limit, `${link.year} sınavı çekiliyor...`);
@@ -439,10 +438,7 @@
                 if(examHtml) {
                     const doc = new DOMParser().parseFromString(examHtml, "text/html");
                     
-                    // Cevap Analizi (Script Dizi veya Data-Value)
-                    // ATA da genellikle benzer altyapı kullanır.
                     let pageAnswers = [];
-                    // Script Dizi arama
                     const scripts = doc.querySelectorAll('script');
                     for(let s of scripts) {
                          const match = s.innerText.match(/\[\s*(["'][A-E]["']\s*,?\s*){5,}\]/g);
@@ -453,10 +449,7 @@
                          }
                     }
 
-                    // Resimleri Bul (Genellikle .content class'ı var)
-                    // ATA yapısı: <img class="w-100 content" ...>
                     const imgs = doc.querySelectorAll('img.content'); 
-                    // Yedek: img.QuestionImg
                     const imgs2 = doc.querySelectorAll('img.QuestionImg');
                     const allImgs = imgs.length > 0 ? imgs : imgs2;
 
@@ -466,22 +459,15 @@
                             if(src.startsWith('//')) src = 'https:'+src;
                             else if(!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/')?'':'/') + src;
                             
-                            // Cevap Bulma
                             let ans = "Bilinmiyor";
-                            
-                            // 1. Ebeveynde data-value var mı?
                             let parent = img.closest('.card') || img.closest('.row') || img.parentElement.parentElement;
                             if(parent) {
                                 let val = parent.getAttribute('data-value') || parent.getAttribute('data-cevap');
                                 if(val) ans = val;
                             }
-                            
-                            // 2. Scriptten gelen dizi
                             if(ans === "Bilinmiyor" && pageAnswers.length > idx) {
                                 ans = pageAnswers[idx].trim();
                             }
-
-                            // 3. Butonlarda success class'ı (Eğer statikse)
                             if(ans === "Bilinmiyor" && parent) {
                                 const btn = parent.querySelector('.btn-success');
                                 if(btn) ans = btn.innerText.trim();
@@ -489,17 +475,15 @@
 
                             const qObj = { 
                                 img: src, 
-                                ans: ans.replace(/[^A-E]/g, ''), // Temizle
+                                ans: ans.replace(/[^A-E]/g, ''), 
                                 title: link.text 
                             };
-                            
                             questionMap.set(src, qObj);
                         }
                     });
                 }
                 await new Promise(r => setTimeout(r, 500));
             }
-
             if(questionMap.size > 0) {
                 allCoursesData.push({ title: title, questions: Array.from(questionMap.values()), stats: {correct:0, wrong:0} });
             }
