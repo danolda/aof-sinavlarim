@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF & ATA Sınav Robotu V16 (Gap Filler)</title>
+    <title>AÖF & ATA Sınav Robotu V17 (Gap Filler Pro)</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- İkonlar -->
@@ -87,7 +87,7 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-3" style="background-color: var(--nav-bg);">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V16</a>
+        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V17</a>
         
         <div class="d-flex mx-auto">
             <div class="uni-tab active" id="tab-anadolu" onclick="switchUni('anadolu')">ANADOLU AÖF</div>
@@ -120,7 +120,7 @@
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label fw-bold">Ders Linkleri & Sınav Sayısı</label>
-                            <div class="alert alert-info py-2 small"><i class="bi bi-info-circle"></i> Sistem istenen sayıya ulaşana kadar 2010 yılına kadar geriye doğru tarama yapar.</div>
+                            <div class="alert alert-info py-2 small"><i class="bi bi-check-circle-fill"></i> Sistem, boş yılları atlayarak tam istediğiniz sayıda sınav bulana kadar 2012'ye kadar arama yapar.</div>
                             
                             <!-- DİNAMİK URL GİRİŞLERİ -->
                             <div id="input-container">
@@ -141,8 +141,6 @@
                                     <span class="input-group-text">2</span>
                                     <input type="text" class="form-control url-input" placeholder="Ders Linki...">
                                     <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="2">2 Sınav</option>
-                                        <option value="3">3 Sınav</option>
                                         <option value="4" selected>4 Sınav</option>
                                         <option value="5">5 Sınav</option>
                                         <option value="6">6 Sınav</option>
@@ -154,13 +152,9 @@
                                     <span class="input-group-text">3</span>
                                     <input type="text" class="form-control url-input" placeholder="Ders Linki...">
                                     <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="2">2 Sınav</option>
-                                        <option value="3">3 Sınav</option>
                                         <option value="4" selected>4 Sınav</option>
                                         <option value="5">5 Sınav</option>
                                         <option value="6">6 Sınav</option>
-                                        <option value="8">8 Sınav</option>
-                                        <option value="10">10 Sınav</option>
                                     </select>
                                 </div>
                                 <div class="input-group mb-2 course-row">
@@ -168,8 +162,6 @@
                                     <input type="text" class="form-control url-input" placeholder="Ders Linki...">
                                     <select class="form-select limit-input" style="max-width: 130px;">
                                         <option value="4" selected>4 Sınav</option>
-                                        <option value="5">5 Sınav</option>
-                                        <option value="6">6 Sınav</option>
                                     </select>
                                 </div>
                                 <div class="input-group mb-2 course-row">
@@ -177,8 +169,6 @@
                                     <input type="text" class="form-control url-input" placeholder="Ders Linki...">
                                     <select class="form-select limit-input" style="max-width: 130px;">
                                         <option value="4" selected>4 Sınav</option>
-                                        <option value="5">5 Sınav</option>
-                                        <option value="6">6 Sınav</option>
                                     </select>
                                 </div>
                                 <div class="input-group mb-2 course-row">
@@ -186,8 +176,6 @@
                                     <input type="text" class="form-control url-input" placeholder="Ders Linki...">
                                     <select class="form-select limit-input" style="max-width: 130px;">
                                         <option value="4" selected>4 Sınav</option>
-                                        <option value="5">5 Sınav</option>
-                                        <option value="6">6 Sınav</option>
                                     </select>
                                 </div>
                             </div>
@@ -196,7 +184,6 @@
 
                     <!-- Ortak Ayarlar -->
                     <div class="row g-3 mt-2">
-                        <!-- Anadolu İçin Başlangıç Yılı -->
                         <div id="settings-anadolu-year" class="col-md-6">
                             <label class="fw-bold">Başlangıç Yılı (Anadolu)</label>
                             <select id="startYear" class="form-select">
@@ -205,7 +192,6 @@
                             </select>
                         </div>
                         
-                        <!-- Ortak Sınav Türü -->
                         <div class="col-md-6">
                             <label class="fw-bold">Sınav Türü</label>
                             <select id="examType" class="form-select">
@@ -374,31 +360,31 @@
         }
     }
 
-    // --- ANADOLU MANTIĞI (GAP FILLER) ---
+    // --- ANADOLU MANTIĞI (GAP FILLER PRO - KESİN ÇÖZÜM) ---
     async function processAnadolu(tasks) {
         const startYear = parseInt(document.getElementById('startYear').value);
         const type = document.getElementById('examType').value;
-        const minYear = 2010; // En fazla 2010'a kadar in
+        const minYear = 2012; // 2012'den öncesini aramasın
         
+        // Bu sadece görsel progress için
+        let totalOps = tasks.length * 10; 
         let completed = 0;
-        // Total ops sadece görsel amaçlıdır, kesin sayı değildir
-        let totalOps = tasks.reduce((acc, task) => acc + task.limit, 0); 
 
         for (let task of tasks) {
             let slug = "";
             try { slug = task.url.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '').split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); } catch(e) { continue; }
             
             let questionMap = new Map();
-            let examsFound = 0;
-            let currentYear = startYear;
+            let examsFound = 0; // Kaç tane DOLU sınav bulduk?
+            let currentYear = startYear; // Aramaya başlanacak yıl
 
-            // --- AKILLI DÖNGÜ: İstenen sayıya ulaşana kadar veya 2010'a gelene kadar ---
+            // Döngü: İstenen sayıya ulaşana kadar VEYA 2012'ye inene kadar devam et
             while (examsFound < task.limit && currentYear >= minYear) {
                 let nextY = currentYear + 1;
                 
-                // Loader sadece bir şeyler yaptığımızı göstersin
-                completed = Math.min(completed + 0.5, totalOps); 
-                updateLoader(completed, totalOps, `${slug} | ${currentYear}-${nextY} taranıyor... (Bulunan: ${examsFound}/${task.limit})`);
+                // Loader metni
+                completed += 0.5;
+                updateLoader(completed, totalOps, `${slug} | ${currentYear}-${nextY} kontrol ediliyor... (Bulunan: ${examsFound}/${task.limit})`);
 
                 let genUrl = `https://aofsoru.com/${slug}-${currentYear}-${nextY}-yili-${type}-sinavi-sinav-sorulari`;
                 const html = await fetchUrl(genUrl);
@@ -407,9 +393,9 @@
                     const doc = new DOMParser().parseFromString(html, "text/html");
                     const cards = doc.querySelectorAll('.card');
                     
-                    // Sadece içinde soru varsa (Card varsa) bu yılı say
+                    // KRİTİK NOKTA: Eğer sayfada .card (yani soru) varsa bu yılı kabul et
                     if(cards.length > 0) {
-                        examsFound++; // Başarılı bir sınav bulundu
+                        examsFound++; // Başarılı sayacını artır
                         
                         cards.forEach(card => {
                             const img = card.querySelector('img.QuestionImg');
@@ -430,8 +416,9 @@
                     }
                 }
                 
-                // Bir yıl geriye git
+                // Bir yıl geriye git (Bulsa da bulmasa da)
                 currentYear--; 
+                // Proxy'yi boğmamak için bekle
                 await new Promise(r => setTimeout(r, 400));
             }
 
@@ -439,16 +426,16 @@
         }
     }
 
-    // --- ATA MANTIĞI (FİLTRELİ & LİMİTLİ) ---
+    // --- ATA MANTIĞI (GAP FILLER PRO - KESİN ÇÖZÜM) ---
     async function processAta(tasks) {
         let typeKey = document.getElementById('examType').value;
         if(typeKey === 'donem-sonu') typeKey = 'final';
         
-        let totalOps = tasks.reduce((acc, task) => acc + task.limit, 0); 
+        let totalOps = tasks.length * 10;
         let completed = 0;
 
         for (let task of tasks) {
-            updateLoader(completed, totalOps, `Ders taranıyor...`);
+            updateLoader(completed, totalOps, `Ders ana sayfası taranıyor...`);
             const mainHtml = await fetchUrl(task.url);
             if(!mainHtml) continue;
 
@@ -478,17 +465,25 @@
                 }
             });
 
+            // Yıla göre sırala
             links.sort((a,b) => b.year - a.year);
-            // İstenen limit kadar al
-            links = links.slice(0, task.limit);
 
+            // KRİTİK NOKTA: Burada slice kullanmıyoruz, döngüyle "task.limit" kadar DOLU sınav bulmaya çalışıyoruz.
             let questionMap = new Map();
+            let examsFound = 0;
+
             for (let link of links) {
-                completed++;
-                updateLoader(completed, totalOps, `${link.year} sınavı...`);
+                // Eğer kotamızı doldurduysak döngüden çık
+                if (examsFound >= task.limit) break;
+
+                completed += 0.5;
+                updateLoader(completed, totalOps, `${link.year} kontrol ediliyor... (Bulunan: ${examsFound}/${task.limit})`);
+                
                 const examHtml = await fetchUrl(link.url);
                 if(examHtml) {
                     const doc = new DOMParser().parseFromString(examHtml, "text/html");
+                    
+                    // Cevap scriptini bul
                     let pageAnswers = [];
                     const scripts = doc.querySelectorAll('script');
                     for(let s of scripts) {
@@ -497,6 +492,8 @@
                     }
 
                     const imgs = doc.querySelectorAll('img.content, img.QuestionImg');
+                    let foundQuestionsInThisExam = 0;
+
                     imgs.forEach((img, idx) => {
                         let src = img.getAttribute('data-src') || img.getAttribute('src');
                         if(src) {
@@ -514,8 +511,14 @@
 
                             const qObj = { img: src, ans: ans.replace(/[^A-E]/g, ''), title: link.text };
                             questionMap.set(src, qObj);
+                            foundQuestionsInThisExam++;
                         }
                     });
+
+                    // Eğer bu sınavda en az 1 soru bulduysak, "Başarılı Sınav" sayacını artır
+                    if(foundQuestionsInThisExam > 0) {
+                        examsFound++;
+                    }
                 }
                 await new Promise(r => setTimeout(r, 400));
             }
@@ -524,7 +527,8 @@
     }
 
     function updateLoader(val, max, text) {
-        let p = (val / max) * 100; if(p>100) p=100;
+        // İlerleme çubuğunu döngüsel yapalım çünkü max değer kesin değil
+        let p = (val % 100); 
         document.getElementById('progress-bar').style.width = p + "%";
         document.getElementById('loader-log').innerText = text;
     }
