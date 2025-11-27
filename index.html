@@ -3,95 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF Sınav Robotu</title>
-    <!-- Bootstrap CSS -->
+    <title>AÖF Sınav Robotu (Multi-Proxy)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Google Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
     <style>
-        body { background-color: #f0f2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .hidden { display: none !important; }
         
-        /* Kart Tasarımları */
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .question-img { 
             max-width: 100%; 
-            border: 2px solid #e9ecef; 
+            border: 1px solid #dee2e6; 
             border-radius: 8px; 
             margin: 15px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         
-        /* Şık Butonları */
         .btn-circle { 
-            width: 45px; height: 45px; 
-            border-radius: 50%; 
-            padding: 0; 
-            line-height: 42px; 
-            font-weight: bold; 
-            margin: 5px; 
-            border: 2px solid #343a40;
-            color: #343a40;
-            background: white;
-            transition: all 0.3s ease;
+            width: 45px; height: 45px; border-radius: 50%; padding: 0; 
+            font-weight: bold; margin: 5px; border: 2px solid #495057;
+            color: #495057; background: white; transition: all 0.2s;
         }
-        .btn-circle:hover { background-color: #343a40; color: white; }
+        .btn-circle:hover { background-color: #495057; color: white; }
         
-        /* Cevap Renkleri */
         .correct-green { background-color: #198754 !important; color: white !important; border-color: #198754 !important; }
         .wrong-red { background-color: #dc3545 !important; color: white !important; border-color: #dc3545 !important; }
         
-        /* Ders Seçim Butonları */
-        .course-btn { 
-            text-align: left; 
-            padding: 20px; 
-            font-size: 1.1rem; 
-            border-left: 5px solid #0d6efd;
-            background: white;
-            transition: 0.3s;
-        }
-        .course-btn:hover { transform: translateX(5px); background: #f8f9fa; }
-        
         .loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.95); z-index: 9999;
+            background: rgba(255,255,255,0.98); z-index: 9999;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
         }
+        .log-text { font-size: 0.85rem; color: #6c757d; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container py-5">
     
-    <!-- 1. PANEL: AYARLAR VE GİRİŞ -->
+    <!-- AYARLAR -->
     <div id="setup-panel" class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card p-4">
                 <div class="text-center mb-4">
-                    <h2 class="fw-bold text-primary">AÖF Sınav Hazırlayıcı v2</h2>
-                    <p class="text-muted">Linkleri girin, soruları çekip çözelim.</p>
+                    <h2 class="fw-bold text-primary">AÖF Sınav Çözücü</h2>
+                    <p class="text-muted">Engelleri aşmak için çoklu proxy sistemi kullanır.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <label class="form-label fw-bold">Ders Linkleri (Aofsoru.com)</label>
-                    <div id="urlInputs">
-                        <input type="text" class="form-control mb-2 url-input" placeholder="Örn: https://aofsoru.com/..." >
-                        <input type="text" class="form-control mb-2 url-input" placeholder="Link 2" >
-                        <input type="text" class="form-control mb-2 url-input" placeholder="Link 3" >
-                    </div>
-                    <small class="text-muted">Not: Linklerin başında https:// olduğundan emin olun.</small>
+                    <label class="form-label fw-bold">Ders Linki (Aofsoru.com)</label>
+                    <input type="text" class="form-control mb-2 url-input" placeholder="https://aofsoru.com/..." >
+                    <input type="text" class="form-control mb-2 url-input" placeholder="İkinci ders linki (opsiyonel)" >
                 </div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Kaç Yıllık Soru Çekilsin?</label>
+                        <label class="form-label fw-bold">Kaç Yıl?</label>
                         <select id="yearLimit" class="form-select">
-                            <option value="1">Son 1 Yıl</option>
-                            <option value="2">Son 2 Yıl</option>
-                            <option value="3">Son 3 Yıl</option>
                             <option value="4" selected>Son 4 Yıl</option>
-                            <option value="5">Son 5 Yıl</option>
                             <option value="10">Tümü</option>
                         </select>
                     </div>
@@ -105,248 +76,202 @@
                 </div>
 
                 <button class="btn btn-primary w-100 btn-lg mt-4" onclick="startProcess()">
-                    <i class="material-icons align-middle">build</i> Sınavı Oluştur
+                    Sınavı Getir
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 2. PANEL: DERS SEÇİMİ -->
+    <!-- DERS LİSTESİ -->
     <div id="course-panel" class="hidden">
-        <h3 class="text-center mb-4 fw-bold">Hazırlanan Dersler</h3>
+        <h3 class="text-center mb-4">Hazırlanan Dersler</h3>
         <div id="course-list" class="d-grid gap-3"></div>
-        <button class="btn btn-secondary mt-4 w-100" onclick="goBack('setup')">Ana Menüye Dön</button>
+        <button class="btn btn-outline-secondary mt-4 w-100" onclick="location.reload()">Başa Dön</button>
     </div>
 
-    <!-- 3. PANEL: SINAV ÇÖZME -->
+    <!-- SINAV EKRANI -->
     <div id="quiz-panel" class="hidden">
         <div class="d-flex justify-content-between align-items-center mb-3 sticky-top bg-white p-3 shadow-sm rounded">
-            <h5 id="currentCourseTitle" class="m-0 text-truncate" style="max-width: 70%;">Ders Adı</h5>
-            <button class="btn btn-outline-danger btn-sm" onclick="goBack('courses')">Dersten Çık</button>
+            <h5 id="currentCourseTitle" class="m-0 text-truncate">Ders Adı</h5>
+            <button class="btn btn-sm btn-danger" onclick="switchPanel('course-panel')">X</button>
         </div>
-        
-        <div id="questions-container" class="col-lg-8 mx-auto">
-            <!-- Sorular buraya gelecek -->
-        </div>
-
-        <div class="text-center mt-5 pb-5">
-            <button class="btn btn-success btn-lg" onclick="goBack('courses')">Derslere Dön</button>
-        </div>
+        <div id="questions-container" class="col-lg-8 mx-auto"></div>
+        <button class="btn btn-success w-100 mt-4 mb-5" onclick="switchPanel('course-panel')">Bitir</button>
     </div>
 
 </div>
 
-<!-- Yükleniyor Göstergesi -->
+<!-- YÜKLENİYOR -->
 <div id="loading" class="loading-overlay hidden">
-    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <h4 class="mt-3 text-dark" id="loadingText">Veriler Çekiliyor...</h4>
-    <p class="text-muted text-center px-3" id="loadingSubText">Sunucuya bağlanılıyor...</p>
+    <div class="spinner-border text-primary" role="status"></div>
+    <h5 class="mt-3">Veriler İşleniyor...</h5>
+    <p id="loadingLog" class="log-text">Sunucuya bağlanılıyor...</p>
 </div>
 
-<!-- JavaScript Kodları -->
 <script>
-    // YENİ PROXY SERVİSİ (Daha hızlı ve HTML döndürür)
-    const PROXY_URL = "https://corsproxy.io/?"; 
     const BASE_URL = "https://aofsoru.com";
     let examData = [];
 
-    // URL'den HTML çekme fonksiyonu (Güncellendi)
-    async function fetchHtml(url) {
-        try {
-            // URL encode ediyoruz ki karışıklık olmasın
-            const targetUrl = PROXY_URL + encodeURIComponent(url);
+    // --- PROXY SİSTEMİ (EN ÖNEMLİ KISIM) ---
+    // Sırayla bu servisleri deneyecek. Biri çalışmazsa diğerine geçecek.
+    const PROXIES = [
+        { url: "https://api.codetabs.com/v1/proxy?quest=", type: "text" }, 
+        { url: "https://api.allorigins.win/get?url=", type: "json" },
+        { url: "https://corsproxy.io/?", type: "text" }
+    ];
+
+    async function fetchWithFallback(targetUrl) {
+        for (let i = 0; i < PROXIES.length; i++) {
+            const proxy = PROXIES[i];
+            const fullUrl = proxy.url + encodeURIComponent(targetUrl);
+            updateLog(`Proxy ${i+1}/${PROXIES.length} deneniyor...`);
             
-            const response = await fetch(targetUrl);
-            
-            if (!response.ok) {
-                console.error(`HTTP Hata: ${response.status}`);
-                return null;
+            try {
+                const response = await fetch(fullUrl);
+                if (!response.ok) throw new Error("Proxy hatası");
+
+                let htmlContent = "";
+                
+                if (proxy.type === "json") {
+                    const data = await response.json();
+                    htmlContent = data.contents;
+                } else {
+                    htmlContent = await response.text();
+                }
+
+                if (!htmlContent || htmlContent.length < 100) throw new Error("Boş veri");
+                
+                console.log(`Başarılı Proxy: ${proxy.url}`);
+                return htmlContent; // Başarılıysa HTML'i döndür ve döngüden çık
+
+            } catch (error) {
+                console.warn(`Proxy ${i+1} başarısız:`, error);
+                // Bir sonraki proxy'ye geç
             }
-            
-            // Bu proxy JSON değil direkt TEXT (HTML) döndürür
-            const htmlText = await response.text();
-            return htmlText;
-            
-        } catch (error) {
-            console.error("Fetch Hatası:", error);
-            return null;
         }
+        return null; // Hepsi başarısız olduysa
     }
+    // ----------------------------------------
 
     function parseHtml(htmlString) {
-        const parser = new DOMParser();
-        return parser.parseFromString(htmlString, "text/html");
+        return new DOMParser().parseFromString(htmlString, "text/html");
     }
 
     async function startProcess() {
         const inputs = document.querySelectorAll('.url-input');
         const urls = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== "");
         const yearLimit = parseInt(document.getElementById('yearLimit').value);
-        const examType = document.getElementById('examType').value; 
+        const examType = document.getElementById('examType').value;
 
-        if (urls.length === 0) {
-            alert("Lütfen en az bir URL girin!");
-            return;
-        }
+        if (urls.length === 0) { alert("Lütfen link girin."); return; }
 
-        showLoading(true, "Ders Sayfası Taranıyor...", "Lütfen bekleyin, bu işlem internet hızınıza bağlıdır.");
+        showLoading(true);
         examData = [];
 
         for (let url of urls) {
-            if (!url.startsWith('http')) {
-                url = 'https://' + url;
-            }
+            if (!url.startsWith('http')) url = 'https://' + url;
 
-            console.log("Ders sayfası çekiliyor:", url);
-            const courseHtml = await fetchHtml(url);
+            updateLog("Ders sayfası analiz ediliyor...");
+            const courseHtml = await fetchWithFallback(url);
             
             if (!courseHtml) {
-                console.log("Ders HTML boş geldi.");
+                alert(`Hata: ${url} adresine hiçbir proxy ile erişilemedi. Site güvenliği çok yüksek olabilir.`);
                 continue;
             }
 
             const doc = parseHtml(courseHtml);
+            let title = doc.querySelector('h1')?.innerText.replace('Soruları', '').trim() || "Ders";
             
-            // Ders başlığını al
-            let title = doc.querySelector('h1')?.innerText || "Ders Başlığı Bulunamadı";
-            title = title.replace('Soruları', '').trim();
-
-            // Linkleri bul
+            updateLog(`${title} için sınav linkleri aranıyor...`);
             const links = getExamLinks(doc, examType, yearLimit);
-            console.log(`${title} için bulunan link sayısı: ${links.length}`);
-            
+
             if (links.length > 0) {
-                updateLoadingText(`${title} - Sorular Çekiliyor`, `${links.length} adet sınav işleniyor...`);
+                updateLog(`${links.length} adet sınav bulundu. Sorular çekiliyor...`);
                 const questions = await scrapeQuestionsFromLinks(links);
-                
                 if (questions.length > 0) {
-                    examData.push({
-                        title: title,
-                        questions: questions
-                    });
+                    examData.push({ title, questions });
                 }
             }
         }
 
         showLoading(false);
-        if (examData.length === 0) {
-            alert("Hiçbir soru çekilemedi. Olası sebepler:\n1. Link yanlış olabilir.\n2. Proxy servisi siteye erişemiyor olabilir.\n3. Site yapısı değişmiş olabilir.");
-        } else {
+        if (examData.length > 0) {
             renderCourses();
             switchPanel('course-panel');
+        } else {
+            alert("Hiçbir soru çekilemedi. Linkleri kontrol edin.");
         }
     }
 
     function getExamLinks(doc, type, limit) {
-        const allLinks = doc.querySelectorAll('a');
         const targetText = type === "vize" ? "ARA" : "DÖNEM SONU";
         let validLinks = [];
-
-        allLinks.forEach(link => {
+        
+        doc.querySelectorAll('a').forEach(link => {
             const title = (link.getAttribute('title') || "").toUpperCase();
             const href = link.getAttribute('href');
-
+            
             if (title.includes(targetText) && href) {
                 const yearMatch = title.match(/(\d{4})\s*-\s*(\d{4})/);
-                let year = 0;
-                if (yearMatch) {
-                    year = parseInt(yearMatch[1]);
-                }
+                let year = yearMatch ? parseInt(yearMatch[1]) : 0;
                 
-                let fullUrl = href;
-                if (!href.startsWith('http')) {
-                    // Baştaki slash kontrolü
-                    if(!href.startsWith('/')) href = '/' + href;
-                    fullUrl = BASE_URL + href;
-                }
+                let fullUrl = href.startsWith('http') ? href : BASE_URL + (href.startsWith('/') ? '' : '/') + href;
                 
-                validLinks.push({
-                    url: fullUrl,
-                    year: year,
-                    title: title
-                });
+                validLinks.push({ url: fullUrl, year, title });
             }
         });
-
-        validLinks.sort((a, b) => b.year - a.year);
-        return validLinks.slice(0, limit);
+        
+        return validLinks.sort((a, b) => b.year - a.year).slice(0, limit);
     }
 
     async function scrapeQuestionsFromLinks(links) {
         let allQuestions = [];
-
         for (let link of links) {
-            console.log("Sınav sayfası taranıyor:", link.url);
-            const html = await fetchHtml(link.url);
+            updateLog(`İşleniyor: ${link.title}`);
+            // Proxy'yi boğmamak için kısa bekleme
+            await new Promise(r => setTimeout(r, 1500)); 
+            
+            const html = await fetchWithFallback(link.url);
             if (!html) continue;
 
             const doc = parseHtml(html);
             const imgs = doc.querySelectorAll('img.QuestionImg');
 
-            imgs.forEach((img, index) => {
+            imgs.forEach(img => {
                 let src = img.getAttribute('src') || img.getAttribute('data-src');
                 if (src) {
-                     if (!src.startsWith('http')) {
-                        if (src.startsWith('//')) {
-                            src = 'https:' + src;
-                        } else {
-                            src = BASE_URL + (src.startsWith('/') ? '' : '/') + src;
-                        }
-                    }
-
-                    // Cevap tespiti
-                    let parent = img.closest('.card-body');
-                    // Alternatif parent bulma (site yapısına göre)
-                    if(!parent && img.parentElement && img.parentElement.parentElement) {
-                         parent = img.parentElement.parentElement;
-                    }
-
-                    let correctAnswer = "Bilinmiyor";
-
+                    if (!src.startsWith('http')) src = src.startsWith('//') ? 'https:' + src : BASE_URL + src;
+                    
+                    // Cevap Bulma Mantığı
+                    let parent = img.closest('.card-body') || img.parentElement.parentElement;
+                    let answer = "Bilinmiyor";
+                    
                     if (parent) {
-                        // Sitedeki "btn-success" class'ı doğru cevabı belirtiyor
-                        const successBtn = parent.querySelector('.btnCevap.btn-success');
-                        if (successBtn) {
-                            correctAnswer = successBtn.innerText.trim();
-                        }
+                        const btn = parent.querySelector('.btnCevap.btn-success');
+                        if (btn) answer = btn.innerText.trim();
                     }
 
                     allQuestions.push({
-                        id: allQuestions.length + 1,
                         image: src,
-                        answer: correctAnswer,
-                        examInfo: link.title
+                        answer: answer,
+                        info: link.title
                     });
                 }
             });
-            
-            // Siteyi boğmamak için 1 saniye bekle
-            await new Promise(r => setTimeout(r, 1000));
         }
         return allQuestions;
     }
 
-    // --- ARAYÜZ ---
+    // --- UI FONKSİYONLARI ---
     function renderCourses() {
         const list = document.getElementById('course-list');
         list.innerHTML = "";
-        
         examData.forEach((course, index) => {
-            const btn = document.createElement('div');
-            btn.className = "card p-3 mb-2 shadow-sm course-btn";
-            btn.style.cursor = "pointer";
-            btn.onclick = () => startQuiz(index);
-            
-            btn.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-1 text-primary">${course.title}</h5>
-                        <small class="text-muted">${course.questions.length} Soru Bulundu</small>
-                    </div>
-                    <i class="material-icons text-muted">arrow_forward_ios</i>
-                </div>
-            `;
-            list.appendChild(btn);
+            list.innerHTML += `
+                <div class="card p-3 shadow-sm" onclick="startQuiz(${index})" style="cursor:pointer; border-left:5px solid #0d6efd">
+                    <h5 class="m-0">${course.title}</h5>
+                    <small class="text-muted">${course.questions.length} Soru</small>
+                </div>`;
         });
     }
 
@@ -356,82 +281,56 @@
         const container = document.getElementById('questions-container');
         container.innerHTML = "";
 
-        course.questions.forEach((q, qIndex) => {
-            const card = document.createElement('div');
-            card.className = "card mb-5";
-            card.innerHTML = `
-                <div class="card-header bg-white">
-                    <small class="text-muted">${q.examInfo}</small>
-                </div>
-                <div class="card-body text-center">
-                    <img src="${q.image}" class="question-img" alt="Soru Yüklenemedi">
-                    
-                    <div class="mt-4 d-flex justify-content-center flex-wrap" id="options-${qIndex}">
-                        ${['A','B','C','D','E'].map(opt => 
-                            `<button class="btn btn-circle" onclick="checkAnswer(this, '${opt}', '${q.answer}', ${qIndex})">${opt}</button>`
-                        ).join('')}
+        course.questions.forEach((q, i) => {
+            container.innerHTML += `
+                <div class="card mb-4">
+                    <div class="card-header bg-white text-muted small">${q.info} - Soru ${i+1}</div>
+                    <div class="card-body text-center">
+                        <img src="${q.image}" class="question-img" onerror="this.src='https://via.placeholder.com/500x100?text=Resim+Yüklenemedi'">
+                        <div class="mt-3" id="opts-${i}">
+                            ${['A','B','C','D','E'].map(opt => 
+                                `<button class="btn btn-circle" onclick="check(this, '${opt}', '${q.answer}', ${i})">${opt}</button>`
+                            ).join('')}
+                        </div>
+                        <div id="fb-${i}" class="mt-2 fw-bold" style="min-height:24px"></div>
                     </div>
-                    
-                    <div id="feedback-${qIndex}" class="mt-3 fw-bold" style="min-height:25px;"></div>
-                </div>
-            `;
-            container.appendChild(card);
+                </div>`;
         });
-
         switchPanel('quiz-panel');
     }
 
-    function checkAnswer(btn, selected, correct, qIndex) {
-        const parent = document.getElementById(`options-${qIndex}`);
-        const feedback = document.getElementById(`feedback-${qIndex}`);
-        const buttons = parent.querySelectorAll('button');
-
-        buttons.forEach(b => b.disabled = true);
+    window.check = function(btn, selected, correct, id) {
+        const parent = document.getElementById(`opts-${id}`);
+        const fb = document.getElementById(`fb-${id}`);
+        parent.querySelectorAll('button').forEach(b => b.disabled = true);
 
         if (correct === "Bilinmiyor") {
-            feedback.innerHTML = `<span class="text-warning">Cevap anahtarı çekilemedi. Site yapısı farklı olabilir.</span>`;
-            btn.style.backgroundColor = "#ffc107";
+            fb.innerHTML = "<span class='text-warning'>Cevap sistemde bulunamadı.</span>";
             return;
         }
 
         if (selected === correct) {
             btn.classList.add('correct-green');
-            feedback.innerHTML = `<span class="text-success">Doğru!</span>`;
+            fb.innerHTML = "<span class='text-success'>Doğru!</span>";
         } else {
             btn.classList.add('wrong-red');
-            feedback.innerHTML = `<span class="text-danger">Yanlış. Doğru Cevap: ${correct}</span>`;
-            buttons.forEach(b => {
-                if (b.innerText === correct) b.classList.add('correct-green');
-            });
+            fb.innerHTML = `<span class='text-danger'>Yanlış. Cevap: ${correct}</span>`;
+            // Doğruyu göster
+            Array.from(parent.children).find(b => b.innerText === correct)?.classList.add('correct-green');
         }
     }
 
-    function switchPanel(panelId) {
-        ['setup-panel', 'course-panel', 'quiz-panel'].forEach(id => {
-            document.getElementById(id).classList.add('hidden');
-        });
-        document.getElementById(panelId).classList.remove('hidden');
+    function switchPanel(id) {
+        ['setup-panel','course-panel','quiz-panel'].forEach(p => document.getElementById(p).classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
     }
 
-    function goBack(target) {
-        if (target === 'setup') switchPanel('setup-panel');
-        if (target === 'courses') switchPanel('course-panel');
+    function showLoading(show) {
+        document.getElementById('loading').classList.toggle('hidden', !show);
     }
 
-    function showLoading(show, text, subText) {
-        const el = document.getElementById('loading');
-        if (show) {
-            el.classList.remove('hidden');
-            if(text) document.getElementById('loadingText').innerText = text;
-            if(subText) document.getElementById('loadingSubText').innerText = subText;
-        } else {
-            el.classList.add('hidden');
-        }
-    }
-    
-    function updateLoadingText(text, subText) {
-        if(text) document.getElementById('loadingText').innerText = text;
-        if(subText) document.getElementById('loadingSubText').innerText = subText;
+    function updateLog(msg) {
+        document.getElementById('loadingLog').innerText = msg;
     }
 </script>
 
