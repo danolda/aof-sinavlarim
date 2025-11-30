@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF & ATA Sınav Robotu V19 (Mobile Fix)</title>
+    <title>AÖF & ATA Sınav Robotu V20 (Ultimate Merge)</title>
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- İkonlar -->
@@ -87,7 +87,7 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-3" style="background-color: var(--nav-bg);">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V19</a>
+        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V20</a>
         
         <div class="d-flex mx-auto">
             <div class="uni-tab active" id="tab-anadolu" onclick="switchUni('anadolu')">ANADOLU AÖF</div>
@@ -110,102 +110,42 @@
     <!-- GİRİŞ PANELİ -->
     <div id="setup-panel">
         <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="card p-5 shadow-lg">
+            <div class="col-lg-11">
+                <div class="card p-4 shadow-lg">
                     <div class="text-center mb-4">
                         <h3 class="fw-bold" id="panel-title">Anadolu AÖF Sınav Robotu</h3>
-                        <p class="text-muted" id="panel-desc">Ders linklerini ve kaç sınav çekileceğini girin.</p>
+                        <p class="text-muted" id="panel-desc">Aynı dersin farklı sınav türlerini (Vize, Final, Yaz Okulu) tek seferde çekebilirsiniz.</p>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-12 mb-3">
-                            <label class="form-label fw-bold">Ders Linkleri & Sınav Sayısı</label>
-                            <div class="alert alert-info py-2 small"><i class="bi bi-phone"></i> Mobil ve Masaüstü linkleri desteklenmektedir.</div>
-                            
-                            <!-- DİNAMİK URL GİRİŞLERİ -->
-                            <div id="input-container">
-                                <div class="input-group mb-2 course-row">
-                                    <span class="input-group-text">1</span>
-                                    <input type="text" class="form-control url-input" placeholder="Ders Linki (Mobil/Web)...">
-                                    <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="2">2 Sınav</option>
-                                        <option value="3">3 Sınav</option>
-                                        <option value="4" selected>4 Sınav</option>
-                                        <option value="5">5 Sınav</option>
-                                        <option value="6">6 Sınav</option>
-                                        <option value="8">8 Sınav</option>
-                                        <option value="10">10 Sınav</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-2 course-row">
-                                    <span class="input-group-text">2</span>
-                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
-                                    <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="4" selected>4 Sınav</option>
-                                        <option value="5">5 Sınav</option>
-                                        <option value="6">6 Sınav</option>
-                                        <option value="8">8 Sınav</option>
-                                        <option value="10">10 Sınav</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-2 course-row">
-                                    <span class="input-group-text">3</span>
-                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
-                                    <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="4" selected>4 Sınav</option>
-                                        <option value="5">5 Sınav</option>
-                                        <option value="6">6 Sınav</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-2 course-row">
-                                    <span class="input-group-text">4</span>
-                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
-                                    <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="4" selected>4 Sınav</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-2 course-row">
-                                    <span class="input-group-text">5</span>
-                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
-                                    <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="4" selected>4 Sınav</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-2 course-row">
-                                    <span class="input-group-text">6</span>
-                                    <input type="text" class="form-control url-input" placeholder="Ders Linki...">
-                                    <select class="form-select limit-input" style="max-width: 130px;">
-                                        <option value="4" selected>4 Sınav</option>
-                                    </select>
-                                </div>
+                            <!-- Başlıklar -->
+                            <div class="row fw-bold mb-2 ps-2">
+                                <div class="col-1">#</div>
+                                <div class="col-5">Ders Linki</div>
+                                <div class="col-3">Sınav Türü</div>
+                                <div class="col-3">Geriye Dönük</div>
                             </div>
+
+                            <!-- DİNAMİK URL GİRİŞLERİ (JS ile doldurulacak) -->
+                            <div id="input-container"></div>
                         </div>
                     </div>
 
                     <!-- Ortak Ayarlar -->
                     <div class="row g-3 mt-2">
-                        <div id="settings-anadolu-year" class="col-md-6">
+                        <div id="settings-anadolu-year" class="col-md-4 offset-md-4">
                             <label class="fw-bold">Başlangıç Yılı (Anadolu)</label>
                             <select id="startYear" class="form-select">
                                 <option value="2024">2024 - 2025</option>
                                 <option value="2023">2023 - 2024</option>
                             </select>
                         </div>
-                        
-                        <div class="col-md-6">
-                            <label class="fw-bold">Sınav Türü</label>
-                            <select id="examType" class="form-select">
-                                <option value="ara">Ara Sınav (Vize)</option>
-                                <option value="final">Dönem Sonu (Final)</option>
-                                <option value="tek-ders">Tek Ders</option>
-                                <option value="yaz-okulu">Yaz Okulu</option>
-                            </select>
-                        </div>
                     </div>
 
-                    <div class="text-center mt-5">
+                    <div class="text-center mt-4">
                         <button class="btn btn-primary btn-lg px-5 fw-bold shadow" onclick="startProcess()">
-                            <i class="bi bi-cloud-download"></i> Soruları Getir
+                            <i class="bi bi-cloud-download"></i> Verileri Çek ve Birleştir
                         </button>
                     </div>
                 </div>
@@ -254,7 +194,7 @@
 <!-- YÜKLENİYOR -->
 <div id="loader" class="loading-overlay hidden">
     <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
-    <h3 class="mt-3 fw-bold">Bağlanılıyor...</h3>
+    <h3 class="mt-3 fw-bold">Veriler İşleniyor...</h3>
     <p id="loader-log" class="text-muted">Lütfen bekleyin...</p>
     <div class="progress w-50 mt-2" style="height: 10px;">
         <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
@@ -276,6 +216,7 @@
     window.onload = function() {
         if(localStorage.getItem('aof_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
         updateThemeIcon();
+        generateInputs(); // 10 Adet Input Oluştur
 
         const savedData = localStorage.getItem('aof_full_data');
         const savedMistakes = localStorage.getItem('aof_wrong_bank');
@@ -293,20 +234,73 @@
         }
     };
 
+    // --- DİNAMİK INPUT OLUŞTURUCU ---
+    function generateInputs() {
+        const container = document.getElementById('input-container');
+        let html = '';
+        for(let i=1; i<=10; i++) {
+            html += `
+            <div class="input-group mb-2 course-row">
+                <span class="input-group-text">${i}</span>
+                <input type="text" class="form-control url-input" placeholder="Ders Linki...">
+                
+                <select class="form-select type-input">
+                    <option value="ara">Ara Sınav (Vize)</option>
+                    <option value="final">Final / Dönem Sonu</option>
+                    <option value="yaz-okulu">Yaz Okulu</option>
+                    <option value="tek-ders">Tek Ders</option>
+                </select>
+
+                <select class="form-select limit-input" style="max-width: 110px;">
+                    <option value="2">2 Yıl</option>
+                    <option value="3">3 Yıl</option>
+                    <option value="4" selected>4 Yıl</option>
+                    <option value="5">5 Yıl</option>
+                    <option value="6">6 Yıl</option>
+                    <option value="8">8 Yıl</option>
+                    <option value="10">10 Yıl</option>
+                </select>
+            </div>`;
+        }
+        container.innerHTML = html;
+    }
+
     function switchUni(uni) {
         currentUni = uni;
         document.querySelectorAll('.uni-tab').forEach(el => el.classList.remove('active'));
         document.getElementById('tab-' + uni).classList.add('active');
         document.querySelectorAll('.url-input').forEach(i => i.value = '');
 
+        // Sınav Türlerini Güncelle
+        const typeSelects = document.querySelectorAll('.type-input');
+        
         if (uni === 'anadolu') {
             document.getElementById('panel-title').innerText = "Anadolu AÖF Sınav Robotu";
             document.getElementById('settings-anadolu-year').classList.remove('hidden');
-            document.querySelectorAll('.url-input')[0].placeholder = "https://aofsoru.com/...";
+            document.querySelectorAll('.url-input').forEach(i => i.placeholder = "https://aofsoru.com/...");
+            
+            // Anadolu Seçenekleri
+            typeSelects.forEach(s => {
+                s.innerHTML = `
+                    <option value="ara">Ara Sınav (Vize)</option>
+                    <option value="final">Final / Dönem Sonu</option>
+                    <option value="yaz-okulu">Yaz Okulu</option>
+                    <option value="tek-ders">Tek Ders</option>
+                `;
+            });
+
         } else {
             document.getElementById('panel-title').innerText = "ATA AÖF Sınav Robotu";
             document.getElementById('settings-anadolu-year').classList.add('hidden');
-            document.querySelectorAll('.url-input')[0].placeholder = "https://ataaofsoru.com/...";
+            document.querySelectorAll('.url-input').forEach(i => i.placeholder = "https://ataaofsoru.com/...");
+            
+            // ATA Seçenekleri
+            typeSelects.forEach(s => {
+                s.innerHTML = `
+                    <option value="ara">Ara Sınav (Vize)</option>
+                    <option value="final">Final / Bütünleme</option>
+                `;
+            });
         }
     }
 
@@ -333,9 +327,11 @@
         
         rows.forEach(row => {
             const url = row.querySelector('.url-input').value.trim();
+            const type = row.querySelector('.type-input').value;
             const limit = parseInt(row.querySelector('.limit-input').value);
+            
             if(url !== "") {
-                tasks.push({ url: url, limit: limit });
+                tasks.push({ url: url, limit: limit, type: type });
             }
         });
 
@@ -360,40 +356,51 @@
         }
     }
 
-    // --- ANADOLU MANTIĞI (MOBILE FIX & FINAL FIX) ---
+    // --- ANADOLU MANTIĞI (MERGE & MOBILE FIX) ---
     async function processAnadolu(tasks) {
         const startYear = parseInt(document.getElementById('startYear').value);
-        const type = document.getElementById('examType').value;
         const minYear = 2012; 
         
         let completed = 0;
-        let totalOps = tasks.length * 10; 
+        let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
 
         for (let task of tasks) {
             let slug = "";
-            // --- URL TEMİZLEME & MOBİL FIX ---
             try { 
                 let cleanUrl = task.url.replace(/https?:\/\//, '')
                                        .replace('www.', '')
                                        .replace('aofsoru.com/', '')
-                                       .replace('mobile/', '') // Mobil fix
-                                       .replace(/^\//, ''); // Baştaki slash'i kaldır
-                
+                                       .replace('mobile/', '')
+                                       .replace(/^\//, ''); 
                 slug = cleanUrl.split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); 
             } catch(e) { continue; }
             
-            let questionMap = new Map();
+            // DERS BAŞLIĞINI OLUŞTUR (MERGE İÇİN)
+            let courseTitle = slug.replace(/-/g, ' ').toUpperCase();
+            
+            // MEVCUTTA BU DERS VAR MI KONTROL ET (MERGE İŞLEMİ)
+            let existingCourse = allCoursesData.find(c => c.title === courseTitle);
+            let questionMap;
+            
+            if (existingCourse) {
+                // Varsa onun sorularını map'e yükle (ki duplicate olmasın)
+                questionMap = new Map();
+                existingCourse.questions.forEach(q => questionMap.set(q.img, q));
+            } else {
+                questionMap = new Map();
+            }
+
             let examsFound = 0; 
             let currentYear = startYear; 
+
+            // URL Slug Düzeltmesi (Final -> donem-sonu)
+            let urlSlugType = task.type;
+            if(task.type === 'final') urlSlugType = 'donem-sonu';
 
             while (examsFound < task.limit && currentYear >= minYear) {
                 let nextY = currentYear + 1;
                 completed += 0.5;
-                updateLoader(completed, totalOps, `${slug} | ${currentYear}-${nextY} taranıyor... (Bulunan: ${examsFound}/${task.limit})`);
-
-                // --- FINAL URL DÜZELTME ---
-                let urlSlugType = type;
-                if(type === 'final') urlSlugType = 'donem-sonu'; // Final -> donem-sonu dönüşümü
+                updateLoader(completed, totalOps, `${slug} (${task.type}) | ${currentYear} taranıyor...`);
 
                 let genUrl = `https://aofsoru.com/${slug}-${currentYear}-${nextY}-yili-${urlSlugType}-sinavi-sinav-sorulari`;
                 const html = await fetchUrl(genUrl);
@@ -418,45 +425,70 @@
                                         if(src.startsWith('//')) src = 'https:'+src;
                                         else if(src.startsWith('/')) src = 'https://image.aofsoru.com'+src;
                                         const finalAns = ans ? ans.trim().toUpperCase() : "Bilinmiyor";
-                                        const qObj = { img: src, ans: finalAns, title: `${currentYear}-${nextY} ${type.toUpperCase()}` };
+                                        
+                                        // Başlıkta Sınav Türü de olsun
+                                        const qTitle = `${currentYear}-${nextY} ${task.type.toUpperCase().replace('-',' ')}`;
+                                        
+                                        const qObj = { img: src, ans: finalAns, title: qTitle };
+                                        
+                                        // Smart Merge (Cevap yoksa ve yenisinde varsa güncelle)
                                         if(questionMap.has(src)) {
                                             if(questionMap.get(src).ans === "Bilinmiyor" && finalAns !== "Bilinmiyor") questionMap.set(src, qObj);
-                                        } else questionMap.set(src, qObj);
+                                        } else {
+                                            questionMap.set(src, qObj);
+                                        }
                                     }
                                 }
                             });
                         }
                     }
                 }
-                
                 currentYear--; 
-                await new Promise(r => setTimeout(r, 300));
+                await new Promise(r => setTimeout(r, 250));
             }
 
-            if(questionMap.size > 0) allCoursesData.push({ title: slug.replace(/-/g, ' ').toUpperCase(), questions: Array.from(questionMap.values()), stats: {correct:0, wrong:0} });
+            // GÜNCEL VERİYİ KAYDET
+            if(questionMap.size > 0) {
+                if (existingCourse) {
+                    // Mevcut dersi güncelle
+                    existingCourse.questions = Array.from(questionMap.values());
+                } else {
+                    // Yeni ders ekle
+                    allCoursesData.push({ 
+                        title: courseTitle, 
+                        questions: Array.from(questionMap.values()), 
+                        stats: {correct:0, wrong:0} 
+                    });
+                }
+            }
         }
     }
 
-    // --- ATA MANTIĞI ---
+    // --- ATA MANTIĞI (MERGE & FILTER) ---
     async function processAta(tasks) {
-        let typeKey = document.getElementById('examType').value;
-        if(typeKey === 'donem-sonu') typeKey = 'final';
-        
-        let totalOps = tasks.reduce((acc, task) => acc + task.limit, 0); 
+        let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
         let completed = 0;
 
         for (let task of tasks) {
             updateLoader(completed, totalOps, `Ders taranıyor...`);
-            
-            // --- MOBİL FIX ATA ---
             let cleanTaskUrl = task.url.replace('mobile/', '');
             
             const mainHtml = await fetchUrl(cleanTaskUrl);
             if(!mainHtml) continue;
 
             const mainDoc = new DOMParser().parseFromString(mainHtml, "text/html");
-            let title = mainDoc.querySelector('h1')?.innerText || "ATA Ders";
-            title = title.replace('Soruları', '').trim();
+            let rawTitle = mainDoc.querySelector('h1')?.innerText || "ATA Ders";
+            let courseTitle = rawTitle.replace('Soruları', '').trim();
+
+            // MERGE HAZIRLIĞI
+            let existingCourse = allCoursesData.find(c => c.title === courseTitle);
+            let questionMap;
+            if (existingCourse) {
+                questionMap = new Map();
+                existingCourse.questions.forEach(q => questionMap.set(q.img, q));
+            } else {
+                questionMap = new Map();
+            }
 
             let links = [];
             mainDoc.querySelectorAll('a').forEach(a => {
@@ -465,7 +497,7 @@
                 
                 if(text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
 
-                let keyword = typeKey === 'ara' ? 'ARA' : 'FİNAL';
+                let keyword = task.type === 'ara' ? 'ARA' : 'FİNAL';
                 if (keyword === 'FİNAL') { 
                     if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) keyword = 'MATCH'; 
                 } else {
@@ -481,13 +513,11 @@
             });
 
             links.sort((a,b) => b.year - a.year);
-
-            let questionMap = new Map();
+            // Limit döngüsü
             let examsFound = 0;
 
             for (let link of links) {
                 if(examsFound >= task.limit) break;
-
                 completed += 0.5;
                 updateLoader(completed, totalOps, `${link.year} kontrol ediliyor...`);
                 
@@ -530,7 +560,14 @@
                 }
                 await new Promise(r => setTimeout(r, 400));
             }
-            if(questionMap.size > 0) allCoursesData.push({ title: title, questions: Array.from(questionMap.values()), stats: {correct:0, wrong:0} });
+
+            if(questionMap.size > 0) {
+                if(existingCourse) {
+                    existingCourse.questions = Array.from(questionMap.values());
+                } else {
+                    allCoursesData.push({ title: courseTitle, questions: Array.from(questionMap.values()), stats: {correct:0, wrong:0} });
+                }
+            }
         }
     }
 
