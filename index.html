@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AÖF & ATA Sınav Robotu V19 (Mobile + Final Fix)</title>
-    <!-- Bootstrap 5 -->
+    <title>AÖF & ATA Sınav Robotu V20</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- İkonlar -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     
     <style>
@@ -35,7 +33,6 @@
         .form-control, .form-select, .input-group-text { background-color: var(--bg-card); color: var(--text-color); border-color: var(--border-color); }
         .form-control:focus, .form-select:focus { background-color: var(--bg-card); color: var(--text-color); box-shadow: none; border-color: var(--sidebar-active); }
 
-        /* Sidebar & Menu */
         .sidebar-item {
             padding: 12px 15px; cursor: pointer; border-radius: 8px; margin-bottom: 8px;
             transition: all 0.2s; border: 1px solid transparent; display: flex; justify-content: space-between; align-items: center;
@@ -49,18 +46,15 @@
 
         .stat-badge { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; min-width: 20px; text-align: center; }
 
-        /* Sorular */
         .question-img { 
             max-width: 100%; border: 1px solid var(--border-color); border-radius: 8px; 
             margin: 15px 0; background: #fff; padding: 5px; min-height: 100px;
         }
 
-        /* Tabs */
         .uni-tab { cursor: pointer; border-bottom: 3px solid transparent; padding: 10px 20px; font-weight: bold; color: var(--text-color); opacity: 0.6; }
         .uni-tab:hover { opacity: 1; }
         .uni-tab.active { border-bottom: 3px solid var(--sidebar-active); color: var(--sidebar-active); opacity: 1; }
 
-        /* Butonlar */
         .btn-circle { 
             width: 50px; height: 50px; border-radius: 50%; padding: 0; 
             font-size: 1.2rem; font-weight: bold; margin: 0 6px; 
@@ -82,14 +76,15 @@
         .scroll-top-wrapper { margin-top: 30px; padding-top: 20px; border-top: 1px dashed var(--border-color); text-align: center; }
         
         .url-hint { font-size: 0.75rem; color: #6c757d; margin-top: 5px; }
+        
+        .debug-log { font-size: 0.7rem; max-height: 100px; overflow-y: auto; text-align: left; background: #000; color: #0f0; padding: 10px; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-3" style="background-color: var(--nav-bg);">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V19</a>
+        <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-robot"></i> Sınav Robotu V20</a>
         
         <div class="d-flex mx-auto">
             <div class="uni-tab active" id="tab-anadolu" onclick="switchUni('anadolu')">ANADOLU AÖF</div>
@@ -109,7 +104,6 @@
 
 <div class="container py-4">
     
-    <!-- GİRİŞ PANELİ -->
     <div id="setup-panel">
         <div class="row justify-content-center">
             <div class="col-lg-10">
@@ -126,7 +120,6 @@
                         <div class="col-md-12 mb-3">
                             <label class="form-label fw-bold">Ders Linkleri & Sınav Sayısı</label>
                             
-                            <!-- DİNAMİK URL GİRİŞLERİ -->
                             <div id="input-container">
                                 <div class="input-group mb-2 course-row">
                                     <span class="input-group-text">1</span>
@@ -189,20 +182,20 @@
                         </div>
                     </div>
 
-                    <!-- Ortak Ayarlar -->
                     <div class="row g-3 mt-2">
                         <div id="settings-anadolu-year" class="col-md-6">
                             <label class="fw-bold">Başlangıç Yılı (Anadolu)</label>
                             <select id="startYear" class="form-select">
                                 <option value="2024">2024 - 2025</option>
                                 <option value="2023">2023 - 2024</option>
+                                <option value="2022">2022 - 2023</option>
                             </select>
                         </div>
                         
                         <div class="col-md-6">
                             <label class="fw-bold">Sınav Türü</label>
                             <select id="examType" class="form-select">
-                                <option value="ara">Ara Sınav (Vize)</option>
+                                <option value="vize">Ara Sınav (Vize)</option>
                                 <option value="final">Final / Dönem Sonu</option>
                                 <option value="tek-ders">Tek Ders</option>
                                 <option value="yaz-okulu">Yaz Okulu</option>
@@ -211,19 +204,19 @@
                     </div>
 
                     <div class="text-center mt-5">
-                        <button class="btn btn-primary btn-lg px-5 fw-bold shadow" onclick="startProcess()">
+                        <button class="btn btn-primary btn-lg px-5 fw-bold shadow" id="startBtn" onclick="startProcess()">
                             <i class="bi bi-cloud-download"></i> Soruları Getir
                         </button>
                     </div>
+                    
+                    <div id="error-box" class="alert alert-danger mt-3 hidden"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- SONUÇ PANELİ -->
     <div id="result-panel" class="hidden">
         <div class="row">
-            <!-- Sol Menü -->
             <div class="col-md-4 col-lg-3 mb-4">
                 <div class="card p-3 sticky-top" style="top: 20px; max-height: 90vh; overflow-y: auto;">
                     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
@@ -240,7 +233,6 @@
                 </div>
             </div>
 
-            <!-- Sağ İçerik -->
             <div class="col-md-8 col-lg-9">
                 <div class="card p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -258,7 +250,6 @@
     </div>
 </div>
 
-<!-- YÜKLENİYOR -->
 <div id="loader" class="loading-overlay hidden">
     <div class="spinner-border text-primary" style="width: 4rem; height: 4rem;"></div>
     <h3 class="mt-3 fw-bold">Bağlanılıyor...</h3>
@@ -266,29 +257,59 @@
     <div class="progress w-50 mt-2" style="height: 10px;">
         <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
     </div>
+    <div id="debug-area" class="debug-log w-50 mt-3 hidden"></div>
 </div>
 
 <script>
-    // --- GLOBAL ---
+    // === GLOBAL DEĞİŞKENLER ===
     let currentUni = 'anadolu';
     let allCoursesData = [];
     let wrongBank = []; 
+    let debugMode = true;
+    
     const PROXIES = [
         "https://api.codetabs.com/v1/proxy?quest=",
         "https://corsproxy.io/?",
         "https://api.allorigins.win/get?url="
     ];
 
-    // --- BAŞLANGIÇ ---
+    // === DEBUG LOG ===
+    function debugLog(msg) {
+        console.log(msg);
+        if (debugMode) {
+            const area = document.getElementById('debug-area');
+            if (area) {
+                area.classList.remove('hidden');
+                area.innerHTML += msg + '<br>';
+                area.scrollTop = area.scrollHeight;
+            }
+        }
+    }
+
+    // === SAYFA YÜKLENDİĞİNDE ===
     window.onload = function() {
-        if(localStorage.getItem('aof_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+        if(localStorage.getItem('aof_theme') === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+        }
         updateThemeIcon();
 
         const savedData = localStorage.getItem('aof_full_data');
         const savedMistakes = localStorage.getItem('aof_wrong_bank');
         
-        if(savedData) allCoursesData = JSON.parse(savedData);
-        if(savedMistakes) wrongBank = JSON.parse(savedMistakes);
+        if(savedData) {
+            try {
+                allCoursesData = JSON.parse(savedData);
+            } catch(e) {
+                allCoursesData = [];
+            }
+        }
+        if(savedMistakes) {
+            try {
+                wrongBank = JSON.parse(savedMistakes);
+            } catch(e) {
+                wrongBank = [];
+            }
+        }
 
         if(allCoursesData.length > 0 || wrongBank.length > 0) {
             document.getElementById('setup-panel').classList.add('hidden');
@@ -300,6 +321,7 @@
         }
     };
 
+    // === ÜNİVERSİTE DEĞİŞTİR ===
     function switchUni(uni) {
         currentUni = uni;
         document.querySelectorAll('.uni-tab').forEach(el => el.classList.remove('active'));
@@ -317,367 +339,444 @@
         }
     }
 
-    /**
-     * URL TEMİZLEME FONKSİYONU
-     * - Mobil URL'leri normal URL'ye çevirir
-     * - /mobile/ ekini kaldırır
-     * - Gereksiz yıl ve sınav türü bilgilerini temizler
-     */
+    // === URL TEMİZLE (MOBİL DESTEK) ===
     function cleanUrl(url) {
+        if (!url) return '';
         let cleaned = url.trim();
-        
-        // /mobile/ ekini kaldır
+        // /mobile/ kaldır
         cleaned = cleaned.replace('/mobile/', '/');
-        
         // Çift slash düzelt
-        cleaned = cleaned.replace(/([^:]\/)\/+/g, "$1");
-        
+        cleaned = cleaned.replace(/([^:])\/\//g, '$1/');
         return cleaned;
     }
 
-    /**
-     * URL'den ders slug'ını çıkar
-     * Hem normal hem mobil URL'lerden çalışır
-     */
+    // === DERS SLUG ÇIKAR ===
     function extractSlug(url) {
-        let cleaned = cleanUrl(url);
-        
-        // Protokol ve domain kaldır
-        cleaned = cleaned.replace(/https?:\/\//, '').replace('www.', '');
-        cleaned = cleaned.replace('aofsoru.com/', '').replace('ataaofsoru.com/', '');
-        
-        // Ders kodu ve adını çıkar (örn: adl201u-buro-teknolojileri-dersi)
-        // Yıl bilgisi ve sınav türünü kaldır
-        let slug = cleaned
-            .replace(/-\d{4}-\d{4}-yili.*/, '')  // 2024-2025-yili... kaldır
-            .replace(/-sinav-sorulari$/, '')      // -sinav-sorulari kaldır
-            .replace(/-dersi$/, '-dersi');        // -dersi koru
-        
-        // Eğer -dersi yoksa ekle (mobil URL'lerde bazen eksik olabiliyor)
-        if (!slug.includes('-dersi') && !slug.endsWith('-dersi')) {
-            // Ders kodunu bul (örn: adl201u)
-            const codeMatch = slug.match(/^[a-z]{3}\d{3}[a-z]?/i);
-            if (codeMatch) {
-                // Ders adı kısmını al
-                const afterCode = slug.substring(codeMatch[0].length);
-                if (afterCode && !afterCode.includes('-dersi')) {
-                    slug = codeMatch[0] + afterCode + '-dersi';
+        try {
+            let cleaned = cleanUrl(url);
+            
+            // Protokol ve domain kaldır
+            cleaned = cleaned.replace(/^https?:\/\//, '');
+            cleaned = cleaned.replace(/^www\./, '');
+            cleaned = cleaned.replace(/^aofsoru\.com\//, '');
+            cleaned = cleaned.replace(/^ataaofsoru\.com\//, '');
+            
+            // Sondaki slash kaldır
+            cleaned = cleaned.replace(/\/$/, '');
+            
+            // -sinav-sorulari ve sonrasını kaldır
+            let slug = cleaned.split('-sinav-sorulari')[0];
+            
+            // Yıl bilgisini kaldır (örn: -2024-2025-yili-ara-sinavi veya -2024-2025-yili-donem-sonu-sinavi)
+            slug = slug.replace(/-\d{4}-\d{4}-yili.*$/, '');
+            
+            // -dersi ile bitmiyorsa ve içermiyorsa, ders kodu kontrolü yap
+            if (!slug.endsWith('-dersi')) {
+                // Eğer mobil linkten geldiyse -dersi ekle
+                if (url.includes('/mobile/') || !slug.includes('-dersi')) {
+                    // Sadece ders kodu varsa (örn: adl201u-buro-teknolojileri)
+                    slug = slug + '-dersi';
                 }
             }
+            
+            debugLog('Slug çıkarıldı: ' + slug);
+            return slug;
+            
+        } catch(e) {
+            debugLog('Slug hatası: ' + e.message);
+            return null;
         }
-        
-        return slug;
     }
 
+    // === URL FETCH (PROXY İLE) ===
     async function fetchUrl(url) {
-        for(let proxy of PROXIES) {
+        for (let i = 0; i < PROXIES.length; i++) {
+            const proxy = PROXIES[i];
             try {
-                const res = await fetch(proxy + encodeURIComponent(url));
-                if(!res.ok) continue;
-                if(proxy.includes('allorigins')) {
+                const fullUrl = proxy + encodeURIComponent(url);
+                const res = await fetch(fullUrl, { 
+                    method: 'GET',
+                    headers: { 'Accept': 'text/html,application/xhtml+xml' }
+                });
+                
+                if (!res.ok) continue;
+                
+                if (proxy.includes('allorigins')) {
                     const json = await res.json();
-                    if(json.contents) return json.contents;
+                    if (json.contents && json.contents.length > 500) {
+                        return json.contents;
+                    }
                 } else {
                     const text = await res.text();
-                    if(text && text.length > 500) return text;
+                    if (text && text.length > 500) {
+                        return text;
+                    }
                 }
-            } catch(e){}
+            } catch(e) {
+                debugLog('Proxy ' + (i+1) + ' başarısız');
+            }
         }
         return null;
     }
 
+    // === ANA İŞLEM BAŞLAT ===
     async function startProcess() {
+        debugLog('=== İşlem Başladı ===');
+        
+        // Hata kutusunu temizle
+        document.getElementById('error-box').classList.add('hidden');
+        document.getElementById('debug-area').innerHTML = '';
+        
         let tasks = [];
         const rows = document.querySelectorAll('.course-row');
         
-        rows.forEach(row => {
-            let url = row.querySelector('.url-input').value.trim();
-            const limit = parseInt(row.querySelector('.limit-input').value);
-            if(url !== "") {
-                // URL'yi temizle (mobil -> normal)
-                url = cleanUrl(url);
-                tasks.push({ url: url, limit: limit });
+        rows.forEach((row, idx) => {
+            const urlInput = row.querySelector('.url-input');
+            const limitInput = row.querySelector('.limit-input');
+            
+            if (urlInput && limitInput) {
+                let url = urlInput.value.trim();
+                const limit = parseInt(limitInput.value) || 4;
+                
+                if (url !== '') {
+                    url = cleanUrl(url);
+                    tasks.push({ url: url, limit: limit, index: idx + 1 });
+                    debugLog('Ders ' + (idx+1) + ': ' + url + ' (' + limit + ' sınav)');
+                }
             }
         });
 
-        if(tasks.length === 0) { alert("Lütfen en az bir link girin."); return; }
+        if (tasks.length === 0) { 
+            alert("Lütfen en az bir link girin."); 
+            return; 
+        }
 
+        // Panel değiştir
         document.getElementById('setup-panel').classList.add('hidden');
         document.getElementById('loader').classList.remove('hidden');
         
-        if (currentUni === 'anadolu') await processAnadolu(tasks);
-        else await processAta(tasks);
+        try {
+            if (currentUni === 'anadolu') {
+                await processAnadolu(tasks);
+            } else {
+                await processAta(tasks);
+            }
+        } catch(e) {
+            debugLog('HATA: ' + e.message);
+            console.error(e);
+        }
 
         document.getElementById('loader').classList.add('hidden');
 
-        if(allCoursesData.length > 0) {
+        if (allCoursesData.length > 0) {
             localStorage.setItem('aof_full_data', JSON.stringify(allCoursesData));
             document.getElementById('result-panel').classList.remove('hidden');
             document.getElementById('globalResetBtn').classList.remove('hidden');
             renderSidebar();
             showCourse(0);
         } else {
-            alert("Sınav bulunamadı. URL'yi ve sınav türünü kontrol edin."); 
-            location.reload();
+            document.getElementById('setup-panel').classList.remove('hidden');
+            document.getElementById('error-box').classList.remove('hidden');
+            document.getElementById('error-box').innerHTML = '<strong>Sınav bulunamadı!</strong><br>URL\'leri ve sınav türünü kontrol edin. Konsolu (F12) kontrol edebilirsiniz.';
         }
     }
 
-    // --- ANADOLU MANTIĞI (FINAL/DÖNEM SONU + MOBİL FIX) ---
+    // === ANADOLU İŞLEME ===
     async function processAnadolu(tasks) {
-        const startYear = parseInt(document.getElementById('startYear').value);
-        const type = document.getElementById('examType').value;
-        const minYear = 2012; 
+        const startYear = parseInt(document.getElementById('startYear').value) || 2024;
+        const examType = document.getElementById('examType').value;
+        const minYear = 2015;
         
-        let completed = 0;
-        let totalOps = tasks.length * 10; 
+        debugLog('Başlangıç yılı: ' + startYear);
+        debugLog('Sınav türü: ' + examType);
 
         for (let task of tasks) {
-            // Slug çıkar (mobil URL desteği ile)
-            let slug = extractSlug(task.url);
+            debugLog('--- Ders ' + task.index + ' işleniyor ---');
+            
+            const slug = extractSlug(task.url);
             
             if (!slug) {
-                console.log("Slug çıkarılamadı:", task.url);
+                debugLog('Slug çıkarılamadı, atlanıyor');
                 continue;
             }
             
-            console.log("İşlenen slug:", slug);
-            
             let questionMap = new Map();
-            let examsFound = 0; 
-            let currentYear = startYear; 
+            let examsFound = 0;
+            let currentYear = startYear;
 
-            // Döngü: İstenen sayıya ulaşana kadar devam et
             while (examsFound < task.limit && currentYear >= minYear) {
-                let nextY = currentYear + 1;
-                completed += 0.5;
-                updateLoader(completed, totalOps, `${slug} | ${currentYear}-${nextY} taranıyor... (Bulunan: ${examsFound}/${task.limit})`);
-
-                // SINAV TÜRÜNE GÖRE URL OLUŞTUR
-                let examTypeUrl = '';
-                let alternativeUrls = [];
+                const nextYear = currentYear + 1;
                 
-                switch(type) {
-                    case 'ara':
-                        examTypeUrl = 'ara-sinavi';
-                        alternativeUrls = ['vize-sinavi'];
-                        break;
-                    case 'final':
-                        // DÖNEM SONU İÇİN BİRDEN FAZLA FORMAT DENE
-                        examTypeUrl = 'donem-sonu-sinavi';
-                        alternativeUrls = ['final-sinavi', 'butunleme-sinavi'];
-                        break;
-                    case 'tek-ders':
-                        examTypeUrl = 'tek-ders-sinavi';
-                        alternativeUrls = [];
-                        break;
-                    case 'yaz-okulu':
-                        examTypeUrl = 'yaz-okulu-sinavi';
-                        alternativeUrls = [];
-                        break;
-                    default:
-                        examTypeUrl = type + '-sinavi';
+                updateLoader(
+                    ((startYear - currentYear) / (startYear - minYear)) * 100,
+                    `${slug.substring(0, 20)}... | ${currentYear}-${nextYear} (${examsFound}/${task.limit})`
+                );
+
+                // Sınav türüne göre URL'ler oluştur
+                let urlsToTry = [];
+                
+                if (examType === 'vize') {
+                    urlsToTry = [
+                        `https://aofsoru.com/${slug}-${currentYear}-${nextYear}-yili-ara-sinavi-sinav-sorulari`,
+                        `https://aofsoru.com/${slug}-${currentYear}-${nextYear}-yili-vize-sinavi-sinav-sorulari`
+                    ];
+                } else if (examType === 'final') {
+                    urlsToTry = [
+                        `https://aofsoru.com/${slug}-${currentYear}-${nextYear}-yili-donem-sonu-sinavi-sinav-sorulari`,
+                        `https://aofsoru.com/${slug}-${currentYear}-${nextYear}-yili-final-sinavi-sinav-sorulari`,
+                        `https://aofsoru.com/${slug}-${currentYear}-${nextYear}-yili-butunleme-sinavi-sinav-sorulari`
+                    ];
+                } else if (examType === 'tek-ders') {
+                    urlsToTry = [
+                        `https://aofsoru.com/${slug}-${currentYear}-${nextYear}-yili-tek-ders-sinavi-sinav-sorulari`
+                    ];
+                } else if (examType === 'yaz-okulu') {
+                    urlsToTry = [
+                        `https://aofsoru.com/${slug}-${currentYear}-${nextYear}-yili-yaz-okulu-sinavi-sinav-sorulari`
+                    ];
                 }
 
-                // TÜM OLASI URL'LERİ DENE
-                let allUrlsToTry = [examTypeUrl, ...alternativeUrls];
-                let foundInThisYear = false;
+                let foundThisYear = false;
 
-                for (let examTypeTry of allUrlsToTry) {
-                    if (foundInThisYear) break;
+                for (let tryUrl of urlsToTry) {
+                    if (foundThisYear) break;
                     
-                    let genUrl = `https://aofsoru.com/${slug}-${currentYear}-${nextY}-yili-${examTypeTry}-sinav-sorulari`;
-                    console.log("Denenen URL:", genUrl);
+                    debugLog('Deneniyor: ' + tryUrl.substring(tryUrl.lastIndexOf('/') + 1));
                     
-                    const html = await fetchUrl(genUrl);
-
-                    if(html) {
-                        // 404 KONTROLÜ
-                        if (html.includes("ARADIĞINIZ SAYFA BULUNAMADI") || html.includes("404 -") || html.includes("Sayfa Bulunamadı")) {
-                            console.log(`${currentYear} ${examTypeTry} boş (404 metni)`);
+                    const html = await fetchUrl(tryUrl);
+                    
+                    if (html) {
+                        // 404 kontrolü
+                        if (html.includes('ARADIĞINIZ SAYFA BULUNAMADI') || 
+                            html.includes('404') || 
+                            html.includes('Sayfa Bulunamadı') ||
+                            html.includes('sayfa bulunamadı')) {
+                            debugLog('404 - Sayfa yok');
                             continue;
-                        } 
-                        
-                        const doc = new DOMParser().parseFromString(html, "text/html");
+                        }
+
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
                         const cards = doc.querySelectorAll('.card');
                         
-                        if(cards.length > 0) {
-                            let questionsInThisExam = 0;
+                        debugLog('Bulunan kart sayısı: ' + cards.length);
+                        
+                        if (cards.length > 0) {
+                            let addedCount = 0;
                             
                             cards.forEach(card => {
-                                const img = card.querySelector('img.QuestionImg');
-                                let ans = card.getAttribute('data-value') || card.getAttribute('data-cevap');
-                                if(img) {
-                                    let src = img.getAttribute('data-src') || img.getAttribute('src');
-                                    if(src) {
-                                        if(src.startsWith('//')) src = 'https:'+src;
-                                        else if(src.startsWith('/')) src = 'https://image.aofsoru.com'+src;
-                                        const finalAns = ans ? ans.trim().toUpperCase() : "Bilinmiyor";
-                                        
-                                        // Sınav türünü düzgün göster
-                                        let displayType = examTypeTry.replace('-sinavi', '').replace('-', ' ').toUpperCase();
-                                        const qObj = { img: src, ans: finalAns, title: `${currentYear}-${nextY} ${displayType}` };
-                                        
-                                        if(questionMap.has(src)) {
-                                            if(questionMap.get(src).ans === "Bilinmiyor" && finalAns !== "Bilinmiyor") questionMap.set(src, qObj);
-                                        } else {
-                                            questionMap.set(src, qObj);
-                                            questionsInThisExam++;
-                                        }
-                                    }
+                                const img = card.querySelector('img.QuestionImg, img[class*="Question"]');
+                                if (!img) return;
+                                
+                                let src = img.getAttribute('data-src') || img.getAttribute('src');
+                                if (!src) return;
+                                
+                                // URL düzelt
+                                if (src.startsWith('//')) {
+                                    src = 'https:' + src;
+                                } else if (src.startsWith('/')) {
+                                    src = 'https://image.aofsoru.com' + src;
+                                }
+                                
+                                // Cevap bul
+                                let answer = card.getAttribute('data-value') || 
+                                            card.getAttribute('data-cevap') || 
+                                            'Bilinmiyor';
+                                answer = answer.trim().toUpperCase();
+                                
+                                if (!questionMap.has(src)) {
+                                    // Sınav türünü belirle
+                                    let typeLabel = '';
+                                    if (tryUrl.includes('ara-sinavi') || tryUrl.includes('vize')) typeLabel = 'VİZE';
+                                    else if (tryUrl.includes('donem-sonu')) typeLabel = 'DÖNEM SONU';
+                                    else if (tryUrl.includes('final')) typeLabel = 'FİNAL';
+                                    else if (tryUrl.includes('butunleme')) typeLabel = 'BÜTÜNLEME';
+                                    else if (tryUrl.includes('tek-ders')) typeLabel = 'TEK DERS';
+                                    else if (tryUrl.includes('yaz-okulu')) typeLabel = 'YAZ OKULU';
+                                    
+                                    questionMap.set(src, {
+                                        img: src,
+                                        ans: answer,
+                                        title: `${currentYear}-${nextYear} ${typeLabel}`
+                                    });
+                                    addedCount++;
                                 }
                             });
                             
-                            if (questionsInThisExam > 0) {
-                                examsFound++; 
-                                foundInThisYear = true;
-                                console.log(`✓ ${currentYear}-${nextY} ${examTypeTry} bulundu! (${questionsInThisExam} soru)`);
+                            if (addedCount > 0) {
+                                examsFound++;
+                                foundThisYear = true;
+                                debugLog('✓ ' + addedCount + ' soru eklendi');
                             }
                         }
                     }
                     
-                    await new Promise(r => setTimeout(r, 200));
+                    await sleep(250);
                 }
                 
-                currentYear--; 
-                await new Promise(r => setTimeout(r, 100));
+                currentYear--;
+                await sleep(100);
             }
 
-            if(questionMap.size > 0) {
-                // Ders adını düzgün formatla
-                let courseName = slug.replace(/-/g, ' ').toUpperCase();
-                allCoursesData.push({ 
-                    title: courseName, 
-                    questions: Array.from(questionMap.values()), 
-                    stats: {correct:0, wrong:0} 
+            // Dersi kaydet
+            if (questionMap.size > 0) {
+                const courseName = slug.replace(/-/g, ' ').toUpperCase();
+                allCoursesData.push({
+                    title: courseName,
+                    questions: Array.from(questionMap.values()),
+                    stats: { correct: 0, wrong: 0 }
+                });
+                debugLog('✓✓ Ders kaydedildi: ' + questionMap.size + ' soru');
+            }
+        }
+    }
+
+    // === ATA İŞLEME ===
+    async function processAta(tasks) {
+        const examType = document.getElementById('examType').value;
+        
+        for (let task of tasks) {
+            debugLog('--- ATA Ders işleniyor ---');
+            
+            updateLoader(50, 'Ders sayfası yükleniyor...');
+            
+            const mainHtml = await fetchUrl(task.url);
+            if (!mainHtml) {
+                debugLog('Ana sayfa yüklenemedi');
+                continue;
+            }
+
+            const mainDoc = new DOMParser().parseFromString(mainHtml, 'text/html');
+            let title = mainDoc.querySelector('h1')?.innerText || 'ATA Ders';
+            title = title.replace('Soruları', '').trim();
+            
+            debugLog('Ders: ' + title);
+
+            // Sınav linklerini bul
+            let examLinks = [];
+            mainDoc.querySelectorAll('a').forEach(a => {
+                const href = a.getAttribute('href');
+                const text = (a.getAttribute('title') || a.innerText || '').toUpperCase();
+                
+                if (!href) return;
+                if (text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
+
+                let isMatch = false;
+                if (examType === 'vize' && text.includes('ARA') && !text.includes('FİNAL')) {
+                    isMatch = true;
+                } else if (examType === 'final' && (text.includes('FİNAL') || text.includes('DÖNEM SONU') || text.includes('BÜTÜNLEME'))) {
+                    isMatch = true;
+                }
+
+                if (isMatch) {
+                    const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
+                    const year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                    let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
+                    fullUrl = fullUrl.replace('/mobile/', '/');
+                    examLinks.push({ url: fullUrl, year: year, text: text });
+                }
+            });
+
+            examLinks.sort((a, b) => b.year - a.year);
+            debugLog('Bulunan sınav linki: ' + examLinks.length);
+
+            let questionMap = new Map();
+            let examsFound = 0;
+
+            for (let link of examLinks) {
+                if (examsFound >= task.limit) break;
+
+                updateLoader(50 + (examsFound / task.limit) * 50, link.text.substring(0, 30));
+                
+                const examHtml = await fetchUrl(link.url);
+                if (!examHtml) continue;
+
+                const doc = new DOMParser().parseFromString(examHtml, 'text/html');
+                
+                // Cevapları script'ten bul
+                let pageAnswers = [];
+                doc.querySelectorAll('script').forEach(s => {
+                    const match = s.innerText.match(/$$
+\s*(["'][A-E]["']\s*,?\s*){5,}
+$$/g);
+                    if (match) {
+                        const longest = match.reduce((a, b) => a.length > b.length ? a : b);
+                        pageAnswers = longest.replace(/[$$
+
+$$"'\s]/g, '').split(',');
+                    }
+                });
+
+                const imgs = doc.querySelectorAll('img.content, img.QuestionImg');
+                let foundAny = false;
+
+                imgs.forEach((img, idx) => {
+                    let src = img.getAttribute('data-src') || img.getAttribute('src');
+                    if (!src) return;
+                    
+                    if (src.startsWith('//')) src = 'https:' + src;
+                    else if (!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/') ? '' : '/') + src;
+
+                    let ans = 'Bilinmiyor';
+                    const parent = img.closest('.card') || img.closest('.row') || img.parentElement?.parentElement;
+                    if (parent) {
+                        ans = parent.getAttribute('data-value') || parent.getAttribute('data-cevap') || ans;
+                    }
+                    if (ans === 'Bilinmiyor' && pageAnswers[idx]) {
+                        ans = pageAnswers[idx].trim();
+                    }
+
+                    questionMap.set(src, {
+                        img: src,
+                        ans: ans.replace(/[^A-E]/g, '') || 'Bilinmiyor',
+                        title: link.text
+                    });
+                    foundAny = true;
+                });
+
+                if (foundAny) examsFound++;
+                await sleep(400);
+            }
+
+            if (questionMap.size > 0) {
+                allCoursesData.push({
+                    title: title,
+                    questions: Array.from(questionMap.values()),
+                    stats: { correct: 0, wrong: 0 }
                 });
             }
         }
     }
 
-    // --- ATA MANTIĞI ---
-    async function processAta(tasks) {
-        let typeKey = document.getElementById('examType').value;
-        if(typeKey === 'final') typeKey = 'final'; // dönem-sonu değil, final kullan
-        
-        let totalOps = tasks.reduce((acc, task) => acc + task.limit, 0); 
-        let completed = 0;
-
-        for (let task of tasks) {
-            // Mobil URL temizle
-            let cleanedUrl = cleanUrl(task.url);
-            
-            updateLoader(completed, totalOps, `Ders taranıyor...`);
-            const mainHtml = await fetchUrl(cleanedUrl);
-            if(!mainHtml) continue;
-
-            const mainDoc = new DOMParser().parseFromString(mainHtml, "text/html");
-            let title = mainDoc.querySelector('h1')?.innerText || "ATA Ders";
-            title = title.replace('Soruları', '').trim();
-
-            let links = [];
-            mainDoc.querySelectorAll('a').forEach(a => {
-                const href = a.getAttribute('href');
-                const text = (a.getAttribute('title') || a.innerText || "").toUpperCase();
-                
-                if(text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
-
-                let keyword = typeKey === 'ara' ? 'ARA' : 'FİNAL';
-                if (keyword === 'FİNAL') { 
-                    if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) keyword = 'MATCH'; 
-                } else {
-                    if(text.includes('FİNAL') || text.includes('BÜTÜNLEME')) return;
-                }
-                
-                if (href && (text.includes(keyword) || keyword === 'MATCH')) {
-                    const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
-                    const year = yearMatch ? parseInt(yearMatch[1]) : 0;
-                    let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
-                    // Mobil eki varsa kaldır
-                    fullUrl = fullUrl.replace('/mobile/', '/');
-                    links.push({ url: fullUrl, year: year, text: text });
-                }
-            });
-
-            links.sort((a,b) => b.year - a.year);
-
-            let questionMap = new Map();
-            let examsFound = 0;
-
-            for (let link of links) {
-                if(examsFound >= task.limit) break;
-
-                completed += 0.5;
-                updateLoader(completed, totalOps, `${link.year} kontrol ediliyor...`);
-                
-                const examHtml = await fetchUrl(link.url);
-                if(examHtml) {
-                    const doc = new DOMParser().parseFromString(examHtml, "text/html");
-                    
-                    let pageAnswers = [];
-                    const scripts = doc.querySelectorAll('script');
-                    for(let s of scripts) {
-                         const match = s.innerText.match(/$$
-\s*(["'][A-E]["']\s*,?\s*){5,}
-$$/g);
-                         if(match) { pageAnswers = match.reduce((a,b)=>a.length>b.length?a:b).replace(/[$$
-
-$$"']/g, '').split(','); break; }
-                    }
-
-                    const imgs = doc.querySelectorAll('img.content, img.QuestionImg');
-                    let foundAny = false;
-
-                    imgs.forEach((img, idx) => {
-                        let src = img.getAttribute('data-src') || img.getAttribute('src');
-                        if(src) {
-                            if(src.startsWith('//')) src = 'https:'+src;
-                            else if(!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/')?'':'/') + src;
-                            
-                            let ans = "Bilinmiyor";
-                            let parent = img.closest('.card') || img.closest('.row') || img.parentElement.parentElement;
-                            if(parent) {
-                                let val = parent.getAttribute('data-value') || parent.getAttribute('data-cevap');
-                                if(val) ans = val;
-                            }
-                            if(ans === "Bilinmiyor" && pageAnswers.length > idx) ans = pageAnswers[idx].trim();
-                            if(ans === "Bilinmiyor" && parent && parent.querySelector('.btn-success')) ans = parent.querySelector('.btn-success').innerText.trim();
-
-                            const qObj = { img: src, ans: ans.replace(/[^A-E]/g, ''), title: link.text };
-                            questionMap.set(src, qObj);
-                            foundAny = true;
-                        }
-                    });
-
-                    if(foundAny) examsFound++;
-                }
-                await new Promise(r => setTimeout(r, 400));
-            }
-            if(questionMap.size > 0) allCoursesData.push({ title: title, questions: Array.from(questionMap.values()), stats: {correct:0, wrong:0} });
-        }
+    // === YARDIMCI FONKSİYONLAR ===
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    function updateLoader(val, max, text) {
-        let p = Math.min((val / max) * 100, 100);
-        document.getElementById('progress-bar').style.width = p + "%";
+    function updateLoader(percent, text) {
+        document.getElementById('progress-bar').style.width = Math.min(percent, 100) + '%';
         document.getElementById('loader-log').innerText = text;
     }
 
+    // === SIDEBAR OLUŞTUR ===
     function renderSidebar() {
         const menu = document.getElementById('sidebar-menu');
-        const mistakemenu = document.getElementById('sidebar-menu-mistakes');
-        menu.innerHTML = "";
-        mistakemenu.innerHTML = "";
+        const mistakeMenu = document.getElementById('sidebar-menu-mistakes');
+        menu.innerHTML = '';
+        mistakeMenu.innerHTML = '';
 
+        // Yanlışlar butonu
         const mistakeDiv = document.createElement('div');
-        mistakeDiv.className = "sidebar-item sidebar-mistakes";
+        mistakeDiv.className = 'sidebar-item sidebar-mistakes';
+        mistakeDiv.id = 'menu-item-mistakes';
         mistakeDiv.innerHTML = `<i class="bi bi-exclamation-octagon-fill"></i> YANLIŞLARIM <span class="badge bg-danger">${wrongBank.length}</span>`;
         mistakeDiv.onclick = () => showMistakes();
-        mistakeDiv.id = `menu-item-mistakes`;
-        mistakemenu.appendChild(mistakeDiv);
+        mistakeMenu.appendChild(mistakeDiv);
 
+        // Ders listesi
         allCoursesData.forEach((course, index) => {
             const div = document.createElement('div');
-            div.className = "sidebar-item";
+            div.className = 'sidebar-item';
+            div.id = `menu-item-${index}`;
             div.innerHTML = `
                 <div class="text-truncate" style="max-width: 65%;">${course.title}</div>
                 <div class="d-flex gap-1">
@@ -685,127 +784,183 @@ $$"']/g, '').split(','); break; }
                     <span class="badge bg-danger stat-badge">${course.stats.wrong}</span>
                 </div>`;
             div.onclick = () => showCourse(index);
-            div.id = `menu-item-${index}`;
             menu.appendChild(div);
         });
     }
 
+    // === DERS GÖSTER ===
     let isMistakeView = false;
     let currentCourseIndex = 0;
 
     function showCourse(index) {
         isMistakeView = false;
         currentCourseIndex = index;
+        
         document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-        document.getElementById(`menu-item-${index}`).classList.add('active');
+        const menuItem = document.getElementById(`menu-item-${index}`);
+        if (menuItem) menuItem.classList.add('active');
+        
         const course = allCoursesData[index];
-        renderExam(course.title, course.questions);
+        if (course) {
+            renderExam(course.title, course.questions);
+        }
     }
 
     function showMistakes() {
         isMistakeView = true;
+        
         document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-        document.getElementById(`menu-item-mistakes`).classList.add('active');
-        if(wrongBank.length === 0) {
-            document.getElementById('active-course-title').innerText = "Yanlışlarım";
-            document.getElementById('question-count').innerText = "0 Soru";
-            document.getElementById('questions-area').innerHTML = "<div class='text-center py-5 text-muted'><i class='bi bi-emoji-smile fs-1'></i><br>Henüz yanlış yapmadınız!</div>";
+        const menuItem = document.getElementById('menu-item-mistakes');
+        if (menuItem) menuItem.classList.add('active');
+        
+        if (wrongBank.length === 0) {
+            document.getElementById('active-course-title').innerText = 'Yanlışlarım';
+            document.getElementById('question-count').innerText = '0 Soru';
+            document.getElementById('questions-area').innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-emoji-smile fs-1"></i><br>
+                    Henüz yanlış yapmadınız!
+                </div>`;
         } else {
-            renderExam("Yanlış Cevapladığım Sorular", wrongBank);
+            renderExam('Yanlış Cevapladığım Sorular', wrongBank);
         }
     }
 
+    // === SINAV RENDER ===
     function renderExam(title, questions) {
         document.getElementById('active-course-title').innerText = title;
         document.getElementById('question-count').innerText = `${questions.length} Soru`;
+        
         const area = document.getElementById('questions-area');
-        area.innerHTML = "";
+        area.innerHTML = '';
 
         questions.forEach((q, i) => {
-            area.innerHTML += `
+            const questionHtml = `
             <div class="card mb-5 shadow-sm">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="badge bg-secondary text-truncate" style="max-width: 70%">${q.title}</span>
-                    <span class="fw-bold">Soru ${i+1}</span>
+                    <span class="badge bg-secondary text-truncate" style="max-width: 70%">${q.title || ''}</span>
+                    <span class="fw-bold">Soru ${i + 1}</span>
                 </div>
                 <div class="card-body text-center">
                     <div class="p-2 mb-3 border rounded bg-light d-inline-block" style="min-width: 50%;">
-                         <img src="${q.img}" class="question-img" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\'text-danger py-3\'>Resim Yüklenemedi</div>'">
+                        <img src="${q.img}" class="question-img" loading="lazy" 
+                             onerror="this.parentElement.innerHTML='<div class=\\'text-danger py-3\\'>Resim Yüklenemedi</div>'">
                     </div>
                     <div class="mt-2" id="opts-${i}">
                         <div class="d-flex justify-content-center flex-wrap gap-2">
-                            ${['A','B','C','D','E'].map(opt => `<button class="btn btn-circle" onclick="checkAnswer(this, '${opt}', '${q.ans}', ${i})">${opt}</button>`).join('')}
+                            ${['A','B','C','D','E'].map(opt => 
+                                `<button class="btn btn-circle" onclick="checkAnswer(this, '${opt}', '${q.ans}', ${i})">${opt}</button>`
+                            ).join('')}
                         </div>
                     </div>
                     <div id="feedback-${i}" class="mt-3 fw-bold" style="min-height: 25px;"></div>
                 </div>
             </div>`;
+            area.innerHTML += questionHtml;
         });
-        area.innerHTML += `<div class="scroll-top-wrapper"><button class="btn btn-outline-primary w-100 py-3" onclick="window.scrollTo({top:0, behavior:'smooth'})"><i class="bi bi-arrow-up-circle-fill"></i> Başa Dön</button></div>`;
+
+        area.innerHTML += `
+            <div class="scroll-top-wrapper">
+                <button class="btn btn-outline-primary w-100 py-3" onclick="window.scrollTo({top:0, behavior:'smooth'})">
+                    <i class="bi bi-arrow-up-circle-fill"></i> Başa Dön
+                </button>
+            </div>`;
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // === CEVAP KONTROL ===
     window.checkAnswer = function(btn, selected, correct, qIdx) {
         const container = document.getElementById(`opts-${qIdx}`);
         const feedback = document.getElementById(`feedback-${qIdx}`);
         const buttons = container.querySelectorAll('button');
+        
         buttons.forEach(b => b.disabled = true);
 
-        if(!correct || correct === "Bilinmiyor") {
-            btn.style.backgroundColor = "#ffc107";
-            feedback.innerHTML = "<span class='text-warning'>Cevap Gizli</span>"; return;
+        if (!correct || correct === 'Bilinmiyor') {
+            btn.style.backgroundColor = '#ffc107';
+            btn.style.color = '#000';
+            btn.style.borderColor = '#ffc107';
+            feedback.innerHTML = '<span class="text-warning">Cevap Bilinmiyor</span>';
+            return;
         }
 
-        let isCorrect = (selected === correct);
+        const isCorrect = (selected === correct);
 
-        if(isCorrect) {
+        if (isCorrect) {
             btn.classList.add('correct-green');
-            feedback.innerHTML = "<span class='text-success'>DOĞRU!</span>";
-            if(!isMistakeView) allCoursesData[currentCourseIndex].stats.correct++;
+            feedback.innerHTML = '<span class="text-success"><i class="bi bi-check-circle-fill"></i> DOĞRU!</span>';
+            if (!isMistakeView) {
+                allCoursesData[currentCourseIndex].stats.correct++;
+            }
         } else {
             btn.classList.add('wrong-red');
-            feedback.innerHTML = `<span class='text-danger'>YANLIŞ! Doğru: ${correct}</span>`;
-            buttons.forEach(b => { if(b.innerText === correct) b.classList.add('correct-green'); });
+            feedback.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle-fill"></i> YANLIŞ! Doğru: ${correct}</span>`;
+            buttons.forEach(b => {
+                if (b.innerText === correct) b.classList.add('correct-green');
+            });
             
-            if(!isMistakeView) {
+            if (!isMistakeView) {
                 allCoursesData[currentCourseIndex].stats.wrong++;
-                let currentQ = allCoursesData[currentCourseIndex].questions[qIdx];
-                let exists = wrongBank.some(w => w.img === currentQ.img);
-                if(!exists) {
+                const currentQ = allCoursesData[currentCourseIndex].questions[qIdx];
+                const exists = wrongBank.some(w => w.img === currentQ.img);
+                if (!exists) {
                     wrongBank.push(currentQ);
                     localStorage.setItem('aof_wrong_bank', JSON.stringify(wrongBank));
                 }
             }
         }
+        
         renderSidebar();
         localStorage.setItem('aof_full_data', JSON.stringify(allCoursesData));
-    }
+    };
 
+    // === SIFIRLAMA ===
     function resetCurrentCourse() {
-        if(!confirm(isMistakeView ? "Yanlışlar kasası temizlensin mi?" : "Bu dersteki cevaplar silinecek?")) return;
-        if(isMistakeView) {
-            wrongBank = []; localStorage.removeItem('aof_wrong_bank'); showMistakes();
+        const msg = isMistakeView ? 'Yanlışlar kasası temizlensin mi?' : 'Bu dersteki cevaplar sıfırlansın mı?';
+        if (!confirm(msg)) return;
+        
+        if (isMistakeView) {
+            wrongBank = [];
+            localStorage.removeItem('aof_wrong_bank');
+            showMistakes();
         } else {
             allCoursesData[currentCourseIndex].stats.correct = 0;
             allCoursesData[currentCourseIndex].stats.wrong = 0;
             showCourse(currentCourseIndex);
         }
+        
         renderSidebar();
         localStorage.setItem('aof_full_data', JSON.stringify(allCoursesData));
     }
 
     function fullReset() {
-        if(!confirm("Her şey silinecek?")) return;
-        localStorage.clear(); location.reload();
+        if (!confirm('Tüm veriler silinecek. Emin misiniz?')) return;
+        localStorage.clear();
+        location.reload();
     }
-    
+
+    // === TEMA ===
     function toggleTheme() {
         const body = document.body;
-        if(body.getAttribute('data-theme') === 'dark') { body.removeAttribute('data-theme'); localStorage.setItem('aof_theme', 'light'); }
-        else { body.setAttribute('data-theme', 'dark'); localStorage.setItem('aof_theme', 'dark'); }
+        if (body.getAttribute('data-theme') === 'dark') {
+            body.removeAttribute('data-theme');
+            localStorage.setItem('aof_theme', 'light');
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            localStorage.setItem('aof_theme', 'dark');
+        }
         updateThemeIcon();
     }
-    function updateThemeIcon() { document.getElementById('themeIcon').className = document.body.getAttribute('data-theme') === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill'; }
+
+    function updateThemeIcon() {
+        const icon = document.getElementById('themeIcon');
+        if (icon) {
+            icon.className = document.body.getAttribute('data-theme') === 'dark' 
+                ? 'bi bi-sun-fill' 
+                : 'bi bi-moon-stars-fill';
+        }
+    }
 </script>
 
 </body>
