@@ -487,37 +487,51 @@
             let links = [];
             mainDoc.querySelectorAll('a').forEach(a => {
                 const href = a.getAttribute('href');
-                const text = (a.getAttribute('title') || a.innerText || "").toUpperCase();
+                const text = (a.getAttribute('title') || a.innerText || "");
 
                 if(!href) return;
-                if(text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
 
-                // yıl yakala
-                const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
-                const year = yearMatch ? parseInt(yearMatch[1]) : 0;
+                // (eski filtre kalsın)
+                const upperText = text.toUpperCase();
+                if(upperText.includes('DENEME') || upperText.includes('ONLİNE') || upperText.includes('TARAMA')) return;
 
-                // tür sınıflandırma: final / but / yaz / ara
+                // URL tabanlı yakalama (ID random, önemi yok)
+                let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
+                const hrefLower = fullUrl.toLowerCase();
+
+                // yıl yakala (önce URL'den)
+                let year = 0;
+                const yMatch = hrefLower.match(/-(\d{4})-(\d{4})-yili-/);
+                if(yMatch) year = parseInt(yMatch[1]);
+
+                // tür sınıflandırma (SADECE URL'ye bak)
                 let kind = null;
 
                 if (task.type === 'yaz-okulu') {
-                    if (text.includes('ARA') || text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) return;
-                    if (!(text.includes('YAZ OKULU') || text.includes('YAZ-OKULU'))) return;
+                    // sadece yaz-okulu linkleri
+                    if (!hrefLower.includes('-yaz-okulu-') && !hrefLower.includes('yaz-okulu-donemi')) return;
                     kind = 'yaz';
                 }
                 else if (task.type === 'ara') {
-                    if (!text.includes('ARA')) return;
-                    if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU') || text.includes('YAZ')) return;
+                    // ara/vize linkleri
+                    if (!hrefLower.includes('-ara-sinavi-') && !hrefLower.includes('-vize-')) return;
+                    // ara seçiliyken final/büt/yaz karışmasın
+                    if (hrefLower.includes('final') || hrefLower.includes('butunleme') || hrefLower.includes('yaz-okulu')) return;
                     kind = 'ara';
                 }
                 else { // final / bütünleme
-                    if (text.includes('YAZ OKULU') || text.includes('YAZ-OKULU') || text.includes('YAZ')) return;
-                    if (text.includes('BÜTÜNLEME')) kind = 'but';
-                    else if (text.includes('FİNAL') || text.includes('DÖNEM SONU')) kind = 'final';
+                    // final modunda yaz okulu karışmasın
+                    if (hrefLower.includes('yaz-okulu')) return;
+
+                    const isBut = hrefLower.includes('butunleme');
+                    const isFinal = hrefLower.includes('final') || hrefLower.includes('donem-sonu');
+
+                    if (isFinal) kind = 'final';
+                    else if (isBut) kind = 'but';
                     else return;
                 }
 
-                let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
-                links.push({ url: fullUrl, year: year, text: text, kind: kind });
+                links.push({ url: fullUrl, year: year, text: upperText, kind: kind });
             });
 
             // SIRALAMA: yıl DESC, aynı yıl içinde FINAL -> BUT
