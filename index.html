@@ -296,6 +296,7 @@ Code
                 s.innerHTML = `
                     <option value="ara">Ara Sınav (Vize)</option>
                     <option value="final">Final / Bütünleme</option>
+                    <option value="yaz-okulu">Yaz Okulu</option>
                 `;
             });
         }
@@ -494,14 +495,21 @@ Code
                 
                 if(text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
 
-                let keyword = task.type === 'ara' ? 'ARA' : 'FİNAL';
-                if (keyword === 'FİNAL') { 
-                    if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) keyword = 'MATCH'; 
-                } else {
-                    if(text.includes('FİNAL') || text.includes('BÜTÜNLEME')) return;
+                // SADECE EKLEME: ATA için Yaz Okulu filtre desteği
+                if (task.type === 'yaz-okulu') {
+                    if (text.includes('ARA') || text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) return;
+                    if (!(text.includes('YAZ OKULU') || text.includes('YAZ-OKULU') || text.includes('YAZ'))) return;
+                } 
+                else if (task.type === 'ara') {
+                    if(text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU') || text.includes('YAZ')) return;
+                    if(!text.includes('ARA')) return;
+                } 
+                else { // final
+                    if (text.includes('ARA') || text.includes('YAZ')) return;
+                    if (!(text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU'))) return;
                 }
                 
-                if (href && (text.includes(keyword) || keyword === 'MATCH')) {
+                if (href) {
                     const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
                     const year = yearMatch ? parseInt(yearMatch[1]) : 0;
                     let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
@@ -642,7 +650,7 @@ Code
                 </div>
                 <div class="card-body text-center">
                     <div class="p-2 mb-3 border rounded bg-light d-inline-block" style="min-width: 50%;">
-                         <img src="${q.img}" class="question-img" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\'text-danger py-3\'>Resim Yüklenemedi</div>'">
+                         <img src="${q.img}" class="question-img" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'text-danger py-3\\'>Resim Yüklenemedi</div>'">
                     </div>
                     <div class="mt-2" id="opts-${i}">
                         <div class="d-flex justify-content-center flex-wrap gap-2">
