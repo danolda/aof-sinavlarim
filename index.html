@@ -369,15 +369,11 @@
                 slug = cleanUrl.split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); 
             } catch(e) { continue; }
             
-            // DERS BAŞLIĞINI OLUŞTUR (MERGE İÇİN)
             let courseTitle = slug.replace(/-/g, ' ').toUpperCase();
-            
-            // MEVCUTTA BU DERS VAR MI KONTROL ET (MERGE İŞLEMİ)
             let existingCourse = allCoursesData.find(c => c.title === courseTitle);
             let questionMap;
             
             if (existingCourse) {
-                // Varsa onun sorularını map'e yükle (ki duplicate olmasın)
                 questionMap = new Map();
                 existingCourse.questions.forEach(q => questionMap.set(q.img, q));
             } else {
@@ -387,7 +383,6 @@
             let examsFound = 0; 
             let currentYear = startYear; 
 
-            // URL Slug Düzeltmesi (Final -> donem-sonu)
             let urlSlugType = task.type;
             if(task.type === 'final') urlSlugType = 'donem-sonu';
 
@@ -401,7 +396,6 @@
 
                 if(html) {
                     if (html.includes("ARADIĞINIZ SAYFA BULUNAMADI") || html.includes("404 -")) {
-                        // Boş
                     } 
                     else {
                         const doc = new DOMParser().parseFromString(html, "text/html");
@@ -420,12 +414,9 @@
                                         else if(src.startsWith('/')) src = 'https://image.aofsoru.com'+src;
                                         const finalAns = ans ? ans.trim().toUpperCase() : "Bilinmiyor";
                                         
-                                        // Başlıkta Sınav Türü de olsun
                                         const qTitle = `${currentYear}-${nextY} ${task.type.toUpperCase().replace('-',' ')}`;
-                                        
                                         const qObj = { img: src, ans: finalAns, title: qTitle };
                                         
-                                        // Smart Merge (Cevap yoksa ve yenisinde varsa güncelle)
                                         if(questionMap.has(src)) {
                                             if(questionMap.get(src).ans === "Bilinmiyor" && finalAns !== "Bilinmiyor") questionMap.set(src, qObj);
                                         } else {
@@ -441,13 +432,10 @@
                 await new Promise(r => setTimeout(r, 250));
             }
 
-            // GÜNCEL VERİYİ KAYDET
             if(questionMap.size > 0) {
                 if (existingCourse) {
-                    // Mevcut dersi güncelle
                     existingCourse.questions = Array.from(questionMap.values());
                 } else {
-                    // Yeni ders ekle
                     allCoursesData.push({ 
                         title: courseTitle, 
                         questions: Array.from(questionMap.values()), 
@@ -474,7 +462,6 @@
             let rawTitle = mainDoc.querySelector('h1')?.innerText || "ATA Ders";
             let courseTitle = rawTitle.replace('Soruları', '').trim();
 
-            // MERGE HAZIRLIĞI
             let existingCourse = allCoursesData.find(c => c.title === courseTitle);
             let questionMap;
             if (existingCourse) {
@@ -491,36 +478,28 @@
 
                 if(!href) return;
 
-                // (eski filtre kalsın)
                 const upperText = text.toUpperCase();
                 if(upperText.includes('DENEME') || upperText.includes('ONLİNE') || upperText.includes('TARAMA')) return;
 
-                // URL tabanlı yakalama (ID random, önemi yok)
                 let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
                 const hrefLower = fullUrl.toLowerCase();
 
-                // yıl yakala (önce URL'den)
                 let year = 0;
                 const yMatch = hrefLower.match(/-(\d{4})-(\d{4})-yili-/);
                 if(yMatch) year = parseInt(yMatch[1]);
 
-                // tür sınıflandırma (SADECE URL'ye bak)
                 let kind = null;
 
                 if (task.type === 'yaz-okulu') {
-                    // sadece yaz-okulu linkleri
                     if (!hrefLower.includes('-yaz-okulu-') && !hrefLower.includes('yaz-okulu-donemi')) return;
                     kind = 'yaz';
                 }
                 else if (task.type === 'ara') {
-                    // ara/vize linkleri
                     if (!hrefLower.includes('-ara-sinavi-') && !hrefLower.includes('-vize-')) return;
-                    // ara seçiliyken final/büt/yaz karışmasın
                     if (hrefLower.includes('final') || hrefLower.includes('butunleme') || hrefLower.includes('yaz-okulu')) return;
                     kind = 'ara';
                 }
-                else { // final / bütünleme
-                    // final modunda yaz okulu karışmasın
+                else {
                     if (hrefLower.includes('yaz-okulu')) return;
 
                     const isBut = hrefLower.includes('butunleme');
@@ -534,11 +513,9 @@
                 links.push({ url: fullUrl, year: year, text: upperText, kind: kind });
             });
 
-            // SIRALAMA: yıl DESC, aynı yıl içinde FINAL -> BUT
             const kindOrder = { final: 0, but: 1, ara: 0, yaz: 0 };
             links.sort((a,b) => (b.year - a.year) || ((kindOrder[a.kind] ?? 99) - (kindOrder[b.kind] ?? 99)));
 
-            // Limit döngüsü
             let examsFound = 0;
 
             for (let link of links) {
@@ -565,17 +542,27 @@
                         if(src) {
                             if(src.startsWith('//')) src = 'https:'+src;
                             else if(!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/')?'':'/') + src;
-                            
-                            let ans = "Bilinmiyor";
-                            let parent = img.closest('.card') || img.closest('.row') || img.parentElement.parentElement;
-                            if(parent) {
-                                let val = parent.getAttribute('data-value') || parent.getAttribute('data-cevap');
-                                if(val) ans = val;
-                            }
-                            if(ans === "Bilinmiyor" && pageAnswers.length > idx) ans = pageAnswers[idx].trim();
-                            if(ans === "Bilinmiyor" && parent && parent.querySelector('.btn-success')) ans = parent.querySelector('.btn-success').innerText.trim();
 
-                            const qObj = { img: src, ans: ans.replace(/[^A-E]/g, ''), title: link.text };
+                            // ✅ ATA: Cevabı önce data-correct'tan al
+                            let ans = "Bilinmiyor";
+                            const qWrap = img.closest('.question');
+                            if(qWrap) {
+                                const dc = (qWrap.getAttribute('data-correct') || "").trim().toUpperCase();
+                                if(dc && /^[A-E]$/.test(dc)) ans = dc;
+                            }
+
+                            // Fallback (eski mantık kalsın)
+                            if(ans === "Bilinmiyor") {
+                                let parent = img.closest('.card') || img.closest('.row') || img.parentElement.parentElement;
+                                if(parent) {
+                                    let val = parent.getAttribute('data-value') || parent.getAttribute('data-cevap');
+                                    if(val) ans = val;
+                                }
+                                if(ans === "Bilinmiyor" && pageAnswers.length > idx) ans = pageAnswers[idx].trim();
+                                if(ans === "Bilinmiyor" && parent && parent.querySelector('.btn-success')) ans = parent.querySelector('.btn-success').innerText.trim();
+                            }
+
+                            const qObj = { img: src, ans: (ans || "").replace(/[^A-E]/g, ''), title: link.text };
                             questionMap.set(src, qObj);
                             foundAny = true;
                         }
