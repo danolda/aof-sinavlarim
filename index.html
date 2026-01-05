@@ -488,32 +488,42 @@
             mainDoc.querySelectorAll('a').forEach(a => {
                 const href = a.getAttribute('href');
                 const text = (a.getAttribute('title') || a.innerText || "").toUpperCase();
-                
+
+                if(!href) return;
                 if(text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
 
-                // SADECE EKLEME: ATA için Yaz Okulu filtre desteği
+                // yıl yakala
+                const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
+                const year = yearMatch ? parseInt(yearMatch[1]) : 0;
+
+                // tür sınıflandırma: final / but / yaz / ara
+                let kind = null;
+
                 if (task.type === 'yaz-okulu') {
                     if (text.includes('ARA') || text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) return;
-                    if (!(text.includes('YAZ OKULU') || text.includes('YAZ-OKULU') || text.includes('YAZ'))) return;
-                } 
+                    if (!(text.includes('YAZ OKULU') || text.includes('YAZ-OKULU'))) return;
+                    kind = 'yaz';
+                }
                 else if (task.type === 'ara') {
-                    if(text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU') || text.includes('YAZ')) return;
-                    if(!text.includes('ARA')) return;
-                } 
-                else { // final
-                    if (text.includes('ARA') || text.includes('YAZ')) return;
-                    if (!(text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU'))) return;
+                    if (!text.includes('ARA')) return;
+                    if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU') || text.includes('YAZ')) return;
+                    kind = 'ara';
                 }
-                
-                if (href) {
-                    const yearMatch = text.match(/(\d{4})\s*-\s*(\d{4})/);
-                    const year = yearMatch ? parseInt(yearMatch[1]) : 0;
-                    let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
-                    links.push({ url: fullUrl, year: year, text: text });
+                else { // final / bütünleme
+                    if (text.includes('YAZ OKULU') || text.includes('YAZ-OKULU') || text.includes('YAZ')) return;
+                    if (text.includes('BÜTÜNLEME')) kind = 'but';
+                    else if (text.includes('FİNAL') || text.includes('DÖNEM SONU')) kind = 'final';
+                    else return;
                 }
+
+                let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
+                links.push({ url: fullUrl, year: year, text: text, kind: kind });
             });
 
-            links.sort((a,b) => b.year - a.year);
+            // SIRALAMA: yıl DESC, aynı yıl içinde FINAL -> BUT
+            const kindOrder = { final: 0, but: 1, ara: 0, yaz: 0 };
+            links.sort((a,b) => (b.year - a.year) || ((kindOrder[a.kind] ?? 99) - (kindOrder[b.kind] ?? 99)));
+
             // Limit döngüsü
             let examsFound = 0;
 
