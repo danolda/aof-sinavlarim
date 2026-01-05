@@ -294,11 +294,12 @@
             document.getElementById('settings-anadolu-year').classList.add('hidden');
             document.querySelectorAll('.url-input').forEach(i => i.placeholder = "https://ataaofsoru.com/...");
             
-            // ATA Seçenekleri
+            // ATA Seçenekleri - BURASI GÜNCELLENDİ
             typeSelects.forEach(s => {
                 s.innerHTML = `
                     <option value="ara">Ara Sınav (Vize)</option>
                     <option value="final">Final / Bütünleme</option>
+                    <option value="yaz-okulu">Yaz Okulu / Mezuniyet</option>
                 `;
             });
         }
@@ -497,11 +498,21 @@
                 
                 if(text.includes('DENEME') || text.includes('ONLİNE') || text.includes('TARAMA')) return;
 
-                let keyword = task.type === 'ara' ? 'ARA' : 'FİNAL';
+                // --- GÜNCELLENEN KISIM: YAZ OKULU LOGİĞİ EKLENDİ ---
+                let keyword = 'ARA'; 
+                if (task.type === 'final') keyword = 'FİNAL';
+                if (task.type === 'yaz-okulu') keyword = 'YAZ OKULU';
+
                 if (keyword === 'FİNAL') { 
                     if (text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('DÖNEM SONU')) keyword = 'MATCH'; 
-                } else {
-                    if(text.includes('FİNAL') || text.includes('BÜTÜNLEME')) return;
+                } 
+                else if (keyword === 'YAZ OKULU') {
+                    // Yaz okulu veya Mezuniyet sınavları
+                    if (text.includes('YAZ OKULU') || text.includes('ÜÇ DERS') || text.includes('MEZUNİYET')) keyword = 'MATCH';
+                }
+                else {
+                    // Ara sınav ise diğerlerini dışla
+                    if(text.includes('FİNAL') || text.includes('BÜTÜNLEME') || text.includes('YAZ OKULU') || text.includes('ÜÇ DERS')) return;
                 }
                 
                 if (href && (text.includes(keyword) || keyword === 'MATCH')) {
@@ -668,60 +679,4 @@
 
         if(!correct || correct === "Bilinmiyor") {
             btn.style.backgroundColor = "#ffc107";
-            feedback.innerHTML = "<span class='text-warning'>Cevap Gizli</span>"; return;
-        }
-
-        let isCorrect = (selected === correct);
-
-        if(isCorrect) {
-            btn.classList.add('correct-green');
-            feedback.innerHTML = "<span class='text-success'>DOĞRU!</span>";
-            if(!isMistakeView) allCoursesData[currentCourseIndex].stats.correct++;
-        } else {
-            btn.classList.add('wrong-red');
-            feedback.innerHTML = `<span class='text-danger'>YANLIŞ! Doğru: ${correct}</span>`;
-            buttons.forEach(b => { if(b.innerText === correct) b.classList.add('correct-green'); });
-            
-            if(!isMistakeView) {
-                allCoursesData[currentCourseIndex].stats.wrong++;
-                let currentQ = allCoursesData[currentCourseIndex].questions[qIdx];
-                let exists = wrongBank.some(w => w.img === currentQ.img);
-                if(!exists) {
-                    wrongBank.push(currentQ);
-                    localStorage.setItem('aof_wrong_bank', JSON.stringify(wrongBank));
-                }
-            }
-        }
-        renderSidebar();
-        localStorage.setItem('aof_full_data', JSON.stringify(allCoursesData));
-    }
-
-    function resetCurrentCourse() {
-        if(!confirm(isMistakeView ? "Yanlışlar kasası temizlensin mi?" : "Bu dersteki cevaplar silinecek?")) return;
-        if(isMistakeView) {
-            wrongBank = []; localStorage.removeItem('aof_wrong_bank'); showMistakes();
-        } else {
-            allCoursesData[currentCourseIndex].stats.correct = 0;
-            allCoursesData[currentCourseIndex].stats.wrong = 0;
-            showCourse(currentCourseIndex);
-        }
-        renderSidebar();
-        localStorage.setItem('aof_full_data', JSON.stringify(allCoursesData));
-    }
-
-    function fullReset() {
-        if(!confirm("Her şey silinecek?")) return;
-        localStorage.clear(); location.reload();
-    }
-    
-    function toggleTheme() {
-        const body = document.body;
-        if(body.getAttribute('data-theme') === 'dark') { body.removeAttribute('data-theme'); localStorage.setItem('aof_theme', 'light'); }
-        else { body.setAttribute('data-theme', 'dark'); localStorage.setItem('aof_theme', 'dark'); }
-        updateThemeIcon();
-    }
-    function updateThemeIcon() { document.getElementById('themeIcon').className = document.body.getAttribute('data-theme') === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill'; }
-</script>
-
-</body>
-</html>
+            feedback.innerHTML = "<span class='text-warning'>Cevap Gizli<
