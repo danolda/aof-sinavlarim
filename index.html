@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AÖF & ATA Sınav Robotu V21 (Pro Edition)</title>
-    <!-- Bootstrap 5 -->
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- İkonlar -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -40,10 +40,8 @@
     }
 
     body { 
-        background-color: var(--bg-body); 
-        color: var(--text-color); 
-        transition: background-color 0.3s, color 0.3s; 
-        font-family: 'Inter', sans-serif; 
+        background-color: var(--bg-body); color: var(--text-color); 
+        transition: background-color 0.3s, color 0.3s; font-family: 'Inter', sans-serif; 
     }
     h1, h2, h3, h4, h5, .navbar-brand { font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: -0.5px; }
     
@@ -70,6 +68,10 @@
 
     .stat-badge { font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; font-weight: 600; }
 
+    /* Offcanvas Support for Dark Mode */
+    [data-theme="dark"] .offcanvas-lg { background-color: var(--bg-card) !important; color: var(--text-color); }
+    [data-theme="dark"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
     /* Tabs */
     .uni-tab { cursor: pointer; border-bottom: 3px solid transparent; padding: 15px 25px; font-weight: 700; color: var(--text-color); opacity: 0.5; transition: 0.3s; }
     .uni-tab:hover { opacity: 1; }
@@ -84,10 +86,8 @@
 
     /* Butonlar */
     .btn-circle { 
-        width: 60px; height: 60px; border-radius: 8px; padding: 0; 
-        font-size: 1.5rem; font-family: 'Montserrat'; font-weight: 800; margin: 0 5px; 
-        border: 2px solid var(--border-color); color: var(--text-color); background: var(--bg-card); 
-        transition: all 0.2s; cursor: pointer;
+        width: 60px; height: 60px; border-radius: 8px; padding: 0; font-size: 1.5rem; font-family: 'Montserrat'; font-weight: 800; margin: 0 5px; 
+        border: 2px solid var(--border-color); color: var(--text-color); background: var(--bg-card); transition: all 0.2s; cursor: pointer;
     }
     .btn-circle:hover { border-color: var(--primary-color); color: var(--primary-color); transform: translateY(-3px); }
     .correct-green { background-color: #10b981 !important; color: white !important; border-color: #10b981 !important; transform: scale(1.05); }
@@ -99,67 +99,59 @@
     .stats-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; font-weight: 600;}
 
     .hidden { display: none !important; }
-    
-    .loading-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: var(--bg-card); opacity: 0.98; z-index: 9999;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-    }
+    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-card); opacity: 0.98; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 </style>
 </head>
 <body data-theme="dark">
 
 <!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg border-bottom px-4" style="background-color: var(--nav-bg);">
+<nav class="navbar navbar-expand-lg border-bottom px-4 sticky-top" style="background-color: var(--nav-bg); z-index: 1040;">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold" style="color: var(--primary-color);" href="#"><i class="bi bi-robot"></i> ROBOT V21 PRO</a>
-        <div class="d-flex mx-auto">
+        <!-- Mobil için Hamburger Menü -->
+        <button class="btn btn-outline-primary d-lg-none me-3 border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar">
+            <i class="bi bi-list fs-3"></i>
+        </button>
+        <a class="navbar-brand fw-bold m-0" style="color: var(--primary-color);" href="#"><i class="bi bi-robot"></i> ROBOT V21 PRO</a>
+        
+        <div class="d-none d-lg-flex mx-auto">
             <div class="uni-tab active" id="tab-anadolu" onclick="switchUni('anadolu')">ANADOLU</div>
             <div class="uni-tab" id="tab-ata" onclick="switchUni('ata')">ATA</div>
         </div>
-        <div class="d-flex gap-3">
-            <button class="btn btn-outline-danger btn-sm hidden" id="globalResetBtn" onclick="fullReset()">
-                <i class="bi bi-trash"></i> Verileri Sil
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="toggleTheme()">
-                <i class="bi bi-sun-fill" id="themeIcon"></i>
-            </button>
+        
+        <div class="d-flex gap-3 ms-auto">
+            <button class="btn btn-outline-danger btn-sm hidden" id="globalResetBtn" onclick="fullReset()"><i class="bi bi-trash"></i> <span class="d-none d-md-inline">Verileri Sil</span></button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="toggleTheme()"><i class="bi bi-sun-fill" id="themeIcon"></i></button>
         </div>
     </div>
 </nav>
+<!-- Mobil için Alt Üniversite Tabları (Küçük Ekranlarda Gösterilecek) -->
+<div class="d-flex d-lg-none justify-content-center border-bottom bg-body">
+    <div class="uni-tab active py-2" id="tab-anadolu-mobile" onclick="switchUni('anadolu')">ANADOLU</div>
+    <div class="uni-tab py-2" id="tab-ata-mobile" onclick="switchUni('ata')">ATA</div>
+</div>
 
 <div class="container py-4">
 <!-- GİRİŞ PANELİ -->
 <div id="setup-panel">
     <div class="row justify-content-center">
         <div class="col-lg-10">
-            <div class="card p-5">
+            <div class="card p-4 p-md-5">
                 <div class="text-center mb-5">
                     <h2 class="fw-bold" id="panel-title">AÖF Sınav Robotu</h2>
                     <p class="text-muted" id="panel-desc">Sınav linklerini girin, robot verileri çeksin ve kavramaya dayalı sistemle ezberlemenizi sağlasın.</p>
                 </div>
-                
-                <div class="row mb-3 fw-bold text-muted ps-2" style="font-size: 0.9rem;">
-                    <div class="col-1">#</div>
-                    <div class="col-6">Ders Linki</div>
-                    <div class="col-3">Sınav Türü</div>
-                    <div class="col-2">Geçmiş</div>
+                <div class="row mb-3 fw-bold text-muted ps-2 d-none d-md-flex" style="font-size: 0.9rem;">
+                    <div class="col-1">#</div><div class="col-6">Ders Linki</div><div class="col-3">Sınav Türü</div><div class="col-2">Geçmiş</div>
                 </div>
-
                 <div id="input-container"></div>
-
                 <div class="row mt-4">
                     <div id="settings-anadolu-year" class="col-md-4 offset-md-4 text-center">
                         <label class="fw-bold mb-2 text-muted">Başlangıç Yılı (Anadolu)</label>
-                        <select id="startYear" class="form-select text-center">
-                            <option value="2024">2024 - 2025</option>
-                            <option value="2023">2023 - 2024</option>
-                        </select>
+                        <select id="startYear" class="form-select text-center"><option value="2024">2024 - 2025</option><option value="2023">2023 - 2024</option></select>
                     </div>
                 </div>
-
                 <div class="text-center mt-5">
-                    <button class="btn btn-primary btn-lg px-5 shadow fw-bold" onclick="startProcess()">
+                    <button class="btn btn-primary btn-lg px-5 shadow fw-bold w-100 w-md-auto" onclick="startProcess()">
                         <i class="bi bi-lightning-charge-fill"></i> SİSTEMİ BAŞLAT
                     </button>
                 </div>
@@ -171,34 +163,42 @@
 <!-- SONUÇ PANELİ -->
 <div id="result-panel" class="hidden">
     <div class="row">
-        <!-- Sol Menü -->
-        <div class="col-md-4 col-lg-3 mb-4">
-            <div class="card p-3 sticky-top" style="top: 20px; max-height: 90vh; overflow-y: auto;">
-                <h5 class="fw-bold mb-3 border-bottom pb-2">Kontrol Paneli</h5>
-                <div id="sidebar-menu-mistakes" class="mb-2"></div>
-                <div id="sidebar-menu-unmastered" class="mb-3"></div>
-                <hr style="border-color: var(--border-color);">
-                <div id="sidebar-menu"></div>
+        <!-- Sol Menü (Desktop'ta normal div, Mobilde Offcanvas) -->
+        <div class="col-lg-3 mb-4">
+            <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="offcanvasSidebar" style="background-color: var(--bg-body); border-right: 1px solid var(--border-color);">
+                <div class="offcanvas-header border-bottom">
+                    <h5 class="offcanvas-title fw-bold">Kontrol Paneli</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body p-3 p-lg-0">
+                    <div class="card p-3 w-100 border-0 border-lg" style="background-color: var(--bg-card); max-height: 85vh; overflow-y: auto;">
+                        <h5 class="fw-bold mb-3 border-bottom pb-2 d-none d-lg-block">Kontrol Paneli</h5>
+                        <div id="sidebar-menu-mistakes" class="mb-2"></div>
+                        <div id="sidebar-menu-unmastered" class="mb-3"></div>
+                        <hr style="border-color: var(--border-color);">
+                        <div id="sidebar-menu"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Sağ İçerik (Soru Ekranı) -->
-        <div class="col-md-8 col-lg-9">
-            <div class="card p-4 h-100">
-                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+        <div class="col-lg-9">
+            <div class="card p-3 p-md-4 h-100">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center border-bottom pb-3 mb-4 gap-3">
                     <div>
                         <h4 id="active-course-title" class="fw-bold m-0" style="color: var(--primary-color);">Ders Seçiniz</h4>
                         <div id="exam-progress-text" class="text-muted mt-1" style="font-size: 0.9rem; font-weight: 600;">Soru 0 / 0</div>
                     </div>
-                    <div class="d-flex gap-2" id="header-buttons">
+                    <div class="d-flex gap-2 w-100 w-md-auto justify-content-end" id="header-buttons">
                         <!-- JS ile Doldurulacak -->
                     </div>
                 </div>
-                
                 <div id="questions-area" class="question-container">
                     <div class="text-center text-muted mt-5">
-                        <i class="bi bi-arrow-left-circle fs-1"></i>
-                        <h5 class="mt-3">Sol menüden bir ders veya kategori seçin.</h5>
+                        <i class="bi bi-arrow-left-circle fs-1 d-none d-lg-block"></i>
+                        <i class="bi bi-list fs-1 d-lg-none"></i>
+                        <h5 class="mt-3">Menüden bir ders veya kategori seçin.</h5>
                     </div>
                 </div>
             </div>
@@ -210,25 +210,20 @@
 <!-- YÜKLENİYOR -->
 <div id="loader" class="loading-overlay hidden">
     <div class="spinner-border" style="width: 4rem; height: 4rem; color: var(--primary-color);"></div>
-    <h3 class="mt-4 fw-bold">Veriler Analiz Ediliyor...</h3>
-    <p id="loader-log" class="text-muted">Bu işlem biraz sürebilir...</p>
-    <div class="progress w-50 mt-3" style="height: 6px; background-color: var(--border-color);">
+    <h3 class="mt-4 fw-bold text-center px-3">Veriler Analiz Ediliyor...</h3>
+    <p id="loader-log" class="text-muted text-center px-3">Bu işlem biraz sürebilir...</p>
+    <div class="progress w-75 w-md-50 mt-3" style="height: 6px; background-color: var(--border-color);">
         <div id="progress-bar" class="progress-bar" style="width: 0%; background-color: var(--primary-color);"></div>
     </div>
 </div>
 
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     // --- GLOBAL ---
-    let currentUni = 'anadolu';
-    let allCoursesData = [];
-    let wrongBank = []; 
-
-    // Sınav Yönetimi Değişkenleri
-    let activeQuestions = [];
-    let activeIndex = 0;
-    let activeMode = ''; // 'course', 'mistakes', 'unmastered'
-    let currentCourseIndex = -1;
-
+    let currentUni = 'anadolu'; let allCoursesData = []; let wrongBank = []; 
+    let activeQuestions = []; let activeIndex = 0; let activeMode = ''; let currentCourseIndex = -1;
     const PROXIES = ["https://api.codetabs.com/v1/proxy?quest=", "https://corsproxy.io/?", "https://api.allorigins.win/get?url="];
 
     window.onload = function() {
@@ -246,17 +241,12 @@
     };
 
     function loadData() {
-        const savedData = localStorage.getItem('aof_full_data');
-        const savedMistakes = localStorage.getItem('aof_wrong_bank');
-        
+        const savedData = localStorage.getItem('aof_full_data'); const savedMistakes = localStorage.getItem('aof_wrong_bank');
         if(savedData) {
             allCoursesData = JSON.parse(savedData);
             allCoursesData.forEach(course => {
-                if(course.lastIndex === undefined) course.lastIndex = 0; // KALINAN YER HAFIZASI
-                course.questions.forEach(q => {
-                    if(!q.id) q.id = q.img; 
-                    if(!q.qStats) q.qStats = { mastery: 0, correct: 0, wrong: 0 };
-                });
+                if(course.lastIndex === undefined) course.lastIndex = 0; 
+                course.questions.forEach(q => { if(!q.id) q.id = q.img; if(!q.qStats) q.qStats = { mastery: 0, correct: 0, wrong: 0 }; });
             });
         }
         if(savedMistakes) {
@@ -265,32 +255,29 @@
         }
     }
 
-    function saveData() {
-        localStorage.setItem('aof_full_data', JSON.stringify(allCoursesData));
-        localStorage.setItem('aof_wrong_bank', JSON.stringify(wrongBank));
-    }
+    function saveData() { localStorage.setItem('aof_full_data', JSON.stringify(allCoursesData)); localStorage.setItem('aof_wrong_bank', JSON.stringify(wrongBank)); }
 
     function generateInputs() {
         const container = document.getElementById('input-container'); let html = '';
         for(let i=1; i<=10; i++) {
-            html += `<div class="input-group mb-2 course-row shadow-sm">
-                <span class="input-group-text fw-bold border-0" style="background: var(--border-color);">${i}</span>
-                <input type="text" class="form-control url-input border-0" placeholder="Ders Linkini Yapıştırın...">
-                <select class="form-select type-input border-0" style="max-width: 200px;">
+            html += `<div class="input-group mb-2 course-row shadow-sm flex-column flex-md-row">
+                <span class="input-group-text fw-bold border-0 d-none d-md-flex" style="background: var(--border-color);">${i}</span>
+                <input type="text" class="form-control url-input border-0 w-100 mb-1 mb-md-0" placeholder="${i}. Ders Linkini Yapıştırın...">
+                <select class="form-select type-input border-0 w-100 mb-1 mb-md-0" style="max-width: 100%; md:max-width: 200px;">
                     <option value="ara">Ara Sınav (Vize)</option><option value="final">Final / Dönem Sonu</option>
                     <option value="yaz-okulu">Yaz Okulu</option><option value="tek-ders">Tek Ders</option>
                 </select>
-                <select class="form-select limit-input border-0" style="max-width: 100px;">
+                <select class="form-select limit-input border-0 w-100" style="max-width: 100%; md:max-width: 100px;">
                     <option value="2">2 Yıl</option><option value="3">3 Yıl</option><option value="4" selected>4 Yıl</option><option value="5">5 Yıl</option>
                 </select></div>`;
-        }
-        container.innerHTML = html;
+        } container.innerHTML = html;
     }
 
     function switchUni(uni) {
         currentUni = uni;
         document.querySelectorAll('.uni-tab').forEach(el => el.classList.remove('active'));
         document.getElementById('tab-' + uni).classList.add('active');
+        document.getElementById('tab-' + uni + '-mobile')?.classList.add('active');
         document.querySelectorAll('.url-input').forEach(i => i.value = '');
 
         const typeSelects = document.querySelectorAll('.type-input');
@@ -317,8 +304,7 @@
     }
 
     async function startProcess() {
-        let tasks = []; const rows = document.querySelectorAll('.course-row');
-        rows.forEach(row => {
+        let tasks = []; document.querySelectorAll('.course-row').forEach(row => {
             const url = row.querySelector('.url-input').value.trim();
             if(url !== "") tasks.push({ url: url, type: row.querySelector('.type-input').value, limit: parseInt(row.querySelector('.limit-input').value) });
         });
@@ -326,8 +312,8 @@
 
         document.getElementById('setup-panel').classList.add('hidden'); document.getElementById('loader').classList.remove('hidden');
         if (currentUni === 'anadolu') await processAnadolu(tasks); else await processAta(tasks);
-
         document.getElementById('loader').classList.add('hidden');
+
         if(allCoursesData.length > 0) {
             saveData(); document.getElementById('result-panel').classList.remove('hidden');
             document.getElementById('globalResetBtn').classList.remove('hidden');
@@ -335,8 +321,7 @@
         } else { alert("Sınav bulunamadı."); location.reload(); }
     }
 
-    /* Anadolu Veri Çekme */
-    async function processAnadolu(tasks) {
+    async function processAnadolu(tasks) { /* Aynı Kod */ 
         const startYear = parseInt(document.getElementById('startYear').value); let completed = 0; let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
         for (let task of tasks) {
             let slug = ""; try { let cleanUrl = task.url.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '').replace('mobile/', '').replace(/^\//, ''); slug = cleanUrl.split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); } catch(e) { continue; }
@@ -368,25 +353,20 @@
                 } currentYear--; await new Promise(r => setTimeout(r, 200));
             }
             if(questionMap.size > 0) {
-                if (existingCourse) existingCourse.questions = Array.from(questionMap.values());
-                else allCoursesData.push({ title: courseTitle, lastIndex: 0, questions: Array.from(questionMap.values()) });
+                if (existingCourse) existingCourse.questions = Array.from(questionMap.values()); else allCoursesData.push({ title: courseTitle, lastIndex: 0, questions: Array.from(questionMap.values()) });
             }
         }
     }
 
-    /* ATA Veri Çekme */
-    async function processAta(tasks) {
+    async function processAta(tasks) { /* Aynı Kod */
         let completed = 0; let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
         for (let task of tasks) {
             updateLoader(completed, totalOps, `ATA Ders Taranıyor...`);
             const mainHtml = await fetchUrl(task.url.replace('mobile/', '')); if(!mainHtml) continue;
-            const mainDoc = new DOMParser().parseFromString(mainHtml, "text/html");
-            let courseTitle = (mainDoc.querySelector('h1')?.innerText || "ATA Ders").replace('Soruları', '').trim();
-            let existingCourse = allCoursesData.find(c => c.title === courseTitle);
-            let questionMap = new Map(); if (existingCourse) existingCourse.questions.forEach(q => questionMap.set(q.id, q));
+            let courseTitle = (new DOMParser().parseFromString(mainHtml, "text/html").querySelector('h1')?.innerText || "ATA Ders").replace('Soruları', '').trim();
+            let existingCourse = allCoursesData.find(c => c.title === courseTitle); let questionMap = new Map(); if (existingCourse) existingCourse.questions.forEach(q => questionMap.set(q.id, q));
 
-            let links = [];
-            mainDoc.querySelectorAll('a').forEach(a => {
+            let links = []; new DOMParser().parseFromString(mainHtml, "text/html").querySelectorAll('a').forEach(a => {
                 const href = a.getAttribute('href'); const text = (a.getAttribute('title') || a.innerText || "");
                 if(!href || text.toUpperCase().includes('DENEME')) return;
                 let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
@@ -411,8 +391,7 @@
                 } await new Promise(r => setTimeout(r, 300));
             }
             if(questionMap.size > 0) {
-                if(existingCourse) existingCourse.questions = Array.from(questionMap.values());
-                else allCoursesData.push({ title: courseTitle, lastIndex: 0, questions: Array.from(questionMap.values()) });
+                if(existingCourse) existingCourse.questions = Array.from(questionMap.values()); else allCoursesData.push({ title: courseTitle, lastIndex: 0, questions: Array.from(questionMap.values()) });
             }
         }
     }
@@ -423,69 +402,70 @@
     function renderSidebar() {
         const menu = document.getElementById('sidebar-menu'); menu.innerHTML = "";
         
-        document.getElementById('sidebar-menu-mistakes').innerHTML = `<div class="sidebar-item sidebar-mistakes ${activeMode==='mistakes'?'active':''}" id="menu-item-mistakes" onclick="showMistakes()">
+        document.getElementById('sidebar-menu-mistakes').innerHTML = `<div class="sidebar-item sidebar-mistakes ${activeMode==='mistakes'?'active':''}" onclick="showMistakes()">
             <span><i class="bi bi-x-octagon-fill"></i> Yanlışlarım</span><span class="badge bg-danger rounded-pill">${wrongBank.length}</span></div>`;
 
         let unmasteredCount = 0; allCoursesData.forEach(c => c.questions.forEach(q => { if(q.qStats.mastery < 100) unmasteredCount++; }));
-        document.getElementById('sidebar-menu-unmastered').innerHTML = `<div class="sidebar-item sidebar-unmastered ${activeMode==='unmastered'?'active':''}" id="menu-item-unmastered" onclick="showUnmastered()">
+        document.getElementById('sidebar-menu-unmastered').innerHTML = `<div class="sidebar-item sidebar-unmastered ${activeMode==='unmastered'?'active':''}" onclick="showUnmastered()">
             <span><i class="bi bi-shuffle"></i> Kavranmayan Karma</span><span class="badge bg-warning text-dark rounded-pill">${unmasteredCount}</span></div>`;
 
         allCoursesData.forEach((course, index) => {
             let m100 = 0; course.questions.forEach(q => { if(q.qStats.mastery===100) m100++; });
-            menu.innerHTML += `<div class="sidebar-item ${activeMode==='course' && currentCourseIndex===index ? 'active':''}" id="menu-item-${index}" onclick="showCourse(${index})">
+            menu.innerHTML += `<div class="sidebar-item ${activeMode==='course' && currentCourseIndex===index ? 'active':''}" onclick="showCourse(${index})">
                     <div class="text-truncate" style="max-width: 70%;">${course.title}</div>
                     <div class="d-flex gap-1"><span class="stat-badge text-success border border-success"><i class="bi bi-check-all"></i> ${m100}</span></div>
                 </div>`;
         });
     }
 
-    function updateHeaderButtons() {
-        const header = document.getElementById('header-buttons');
-        let html = '';
-        if(activeMode === 'course') {
-            html += `<button class="btn btn-outline-warning btn-sm" onclick="resetPosition()" title="Kavrama puanları silinmez, sadece 1. soruya döner."><i class="bi bi-arrow-counterclockwise"></i> Başa Dön</button>`;
+    function closeOffcanvas() {
+        if(window.innerWidth < 992) {
+            const offEl = document.getElementById('offcanvasSidebar');
+            if(offEl) { const bsOff = bootstrap.Offcanvas.getInstance(offEl); if(bsOff) bsOff.hide(); }
         }
-        html += `<button class="btn btn-outline-secondary btn-sm" onclick="prevQuestion()"><i class="bi bi-chevron-left"></i> Önceki</button>
-                 <button class="btn btn-outline-secondary btn-sm" onclick="skipQuestion()">Geç <i class="bi bi-chevron-right"></i></button>`;
+    }
+
+    function updateHeaderButtons() {
+        const header = document.getElementById('header-buttons'); let html = '';
+        if(activeMode === 'course') html += `<button class="btn btn-outline-warning btn-sm" onclick="resetPosition()"><i class="bi bi-arrow-counterclockwise"></i></button>`;
+        html += `<button class="btn btn-outline-secondary btn-sm" onclick="prevQuestion()"><i class="bi bi-chevron-left"></i></button>
+                 <button class="btn btn-outline-secondary btn-sm" onclick="skipQuestion()"><i class="bi bi-chevron-right"></i></button>`;
         header.innerHTML = html;
     }
 
     // --- MOD SEÇİMLERİ ---
     function showCourse(index) {
-        activeMode = 'course'; currentCourseIndex = index;
-        const course = allCoursesData[index];
-        activeIndex = course.lastIndex || 0; // KALINAN YER
-        activeQuestions = course.questions; // Derste kopyalama yapmıyoruz, referans yeterli
-        renderSidebar(); updateHeaderButtons(); startExam(course.title);
+        closeOffcanvas(); activeMode = 'course'; currentCourseIndex = index;
+        activeIndex = allCoursesData[index].lastIndex || 0; activeQuestions = allCoursesData[index].questions;
+        renderSidebar(); updateHeaderButtons(); startExam(allCoursesData[index].title);
     }
 
     function showMistakes() {
-        activeMode = 'mistakes'; currentCourseIndex = -1; activeIndex = 0;
-        activeQuestions = [...wrongBank]; // Shallow copy (Kuyruktan anlık silmek için)
+        closeOffcanvas(); activeMode = 'mistakes'; currentCourseIndex = -1; activeIndex = 0;
+        activeQuestions = [...wrongBank]; 
         renderSidebar(); updateHeaderButtons(); startExam("Yanlış Cevaplananlar");
     }
 
     function showUnmastered() {
-        activeMode = 'unmastered'; currentCourseIndex = -1; activeIndex = 0;
+        closeOffcanvas(); activeMode = 'unmastered'; currentCourseIndex = -1; activeIndex = 0;
         let pool = []; allCoursesData.forEach(c => c.questions.forEach(q => { if(q.qStats.mastery < 100) pool.push(q); }));
         for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-        activeQuestions = pool; // Shufflelanmış Array
+        activeQuestions = pool; 
         renderSidebar(); updateHeaderButtons(); startExam("Karma Kavrama Antrenmanı");
     }
 
-    function startExam(title) {
-        document.getElementById('active-course-title').innerText = title;
-        renderSingleQuestion();
-    }
+    function startExam(title) { document.getElementById('active-course-title').innerText = title; renderSingleQuestion(); }
 
     function renderSingleQuestion() {
         const area = document.getElementById('questions-area');
-        if(activeQuestions.length === 0 || activeIndex >= activeQuestions.length) {
+        if(activeQuestions.length === 0 || (activeMode !== 'unmastered' && activeIndex >= activeQuestions.length)) {
             document.getElementById('exam-progress-text').innerText = `Tamamlandı`;
-            let extraHTML = activeMode === 'course' ? `<button class="btn btn-primary mt-3" onclick="resetPosition()">Tekrar Baştan Çöz</button>` : `<p class="mt-2 text-muted">Bu bölümdeki tüm soruları erittiniz.</p>`;
-            area.innerHTML = `<div class="text-center text-success mt-5"><i class="bi bi-trophy-fill" style="font-size: 4rem;"></i><h3 class="mt-3 fw-bold">Tebrikler!</h3>${extraHTML}</div>`;
-            return;
+            let extraHTML = activeMode === 'course' ? `<button class="btn btn-primary mt-3" onclick="resetPosition()">Tekrar Baştan Çöz</button>` : `<p class="mt-2 text-muted">Mükemmel! Bu kısımdaki hedeflere ulaştın.</p>`;
+            area.innerHTML = `<div class="text-center text-success mt-5"><i class="bi bi-trophy-fill" style="font-size: 4rem;"></i><h3 class="mt-3 fw-bold">Tebrikler!</h3>${extraHTML}</div>`; return;
         }
+
+        // Karma modda sonsuz döngü (drill) mantığı kontrolü
+        if (activeMode === 'unmastered' && activeIndex >= activeQuestions.length) activeIndex = 0;
 
         document.getElementById('exam-progress-text').innerText = `Soru ${activeIndex + 1} / ${activeQuestions.length}`;
         const q = activeQuestions[activeIndex];
@@ -525,8 +505,6 @@
         }
 
         let isCorrect = (selected === correct);
-
-        // Global soruyu bul
         let globalQ = null; allCoursesData.forEach(c => { let f = c.questions.find(x => x.id === q.id); if(f) globalQ = f; });
         if(!globalQ) globalQ = q; 
 
@@ -535,7 +513,7 @@
             feedback.innerHTML = "<span class='text-success'><i class='bi bi-check-circle-fill'></i> DOĞRU!</span>";
             globalQ.qStats.correct++; globalQ.qStats.mastery = Math.min(100, globalQ.qStats.mastery + 50);
             
-            wrongBank = wrongBank.filter(x => x.id !== q.id); // Her halükarda doğruysa bankadan sil
+            wrongBank = wrongBank.filter(x => x.id !== q.id); 
         } else {
             btn.classList.add('wrong-red');
             feedback.innerHTML = `<span class='text-danger'><i class='bi bi-x-circle-fill'></i> YANLIŞ! Doğru Cevap: ${correct}</span>`;
@@ -546,31 +524,33 @@
         }
 
         saveData(); renderSidebar();
-        setTimeout(() => advanceLogic(isCorrect), isCorrect ? 1200 : 2500);
+        setTimeout(() => advanceLogic(isCorrect), isCorrect ? 1000 : 2500); // Bekleme süreleri biraz daha kısaltıldı akıcı olması için
     }
 
     function advanceLogic(isCorrect) {
-        if (activeMode === 'mistakes' || activeMode === 'unmastered') {
-            // Karma veya Yanlış modundaysak, soruyu O ANKİ KUYRUKTAN(Ekrandan) SİL. 
-            // Sildiğimiz için activeIndex'i arttırmamıza gerek yok, bir sonraki soru otomatik olarak aynı indexe kayar.
-            activeQuestions.splice(activeIndex, 1);
-        } else {
-            // Ders modundaysak sadece indexi arttır ve kaldığı yeri kaydet.
-            activeIndex++;
-            if(activeMode === 'course') {
-                allCoursesData[currentCourseIndex].lastIndex = activeIndex;
-                saveData();
+        const q = activeQuestions[activeIndex];
+
+        if (activeMode === 'mistakes') {
+            activeQuestions.splice(activeIndex, 1); // Yanlışlarımda direkt listeden siliniyor
+        } else if (activeMode === 'unmastered') {
+            if (q.qStats.mastery === 100) {
+                activeQuestions.splice(activeIndex, 1); // KAVRANAN SORU LİSTEDEN SİLİNİR (%100 olduğu an)
+            } else {
+                activeIndex++; // %100 değilse listede kalmaya devam eder, diğer soruya geçer
             }
+        } else {
+            activeIndex++;
+            allCoursesData[currentCourseIndex].lastIndex = activeIndex;
+            saveData();
         }
+        
         renderSingleQuestion();
     }
 
     function nextQuestion() {
-        if(activeIndex < activeQuestions.length) { 
-            activeIndex++; 
-            if(activeMode === 'course') { allCoursesData[currentCourseIndex].lastIndex = activeIndex; saveData(); }
-            renderSingleQuestion(); 
-        }
+        activeIndex++;
+        if(activeMode === 'course' && activeIndex < activeQuestions.length) { allCoursesData[currentCourseIndex].lastIndex = activeIndex; saveData(); }
+        renderSingleQuestion();
     }
     
     function prevQuestion() {
@@ -584,10 +564,7 @@
 
     function resetPosition() {
         if(activeMode === 'course' && currentCourseIndex !== -1) {
-            activeIndex = 0;
-            allCoursesData[currentCourseIndex].lastIndex = 0;
-            saveData();
-            renderSingleQuestion();
+            activeIndex = 0; allCoursesData[currentCourseIndex].lastIndex = 0; saveData(); renderSingleQuestion();
         }
     }
 
