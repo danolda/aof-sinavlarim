@@ -79,7 +79,6 @@
     .question-container { position: relative; overflow: hidden; min-height: 400px; display: flex; align-items: center; justify-content: center; flex-direction: column;}
     .question-slide { width: 100%; animation: slideIn 0.4s ease forwards; }
     @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-    @keyframes slideOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-20px); } }
 
     .question-img { max-width: 100%; max-height: 40vh; border: 2px solid var(--border-color); border-radius: 6px; background: #fff; padding: 10px; margin-bottom: 20px; object-fit: contain; }
 
@@ -104,14 +103,11 @@
     .loading-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: var(--bg-card); opacity: 0.98; z-index: 9999;
-        display: flex; flex-direction: column;
-        justify-content: center; align-items: center;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
-    .btn-primary { background-color: var(--primary-color); border: none; border-radius: 4px; font-weight: 600; text-transform: uppercase;}
-    .btn-primary:hover { background-color: #1d4ed8; }
 </style>
 </head>
-<body data-theme="dark"> <!-- Varsayılan Koyu Tema -->
+<body data-theme="dark">
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-4" style="background-color: var(--nav-bg);">
@@ -163,7 +159,7 @@
                 </div>
 
                 <div class="text-center mt-5">
-                    <button class="btn btn-primary btn-lg px-5 shadow" onclick="startProcess()">
+                    <button class="btn btn-primary btn-lg px-5 shadow fw-bold" onclick="startProcess()">
                         <i class="bi bi-lightning-charge-fill"></i> SİSTEMİ BAŞLAT
                     </button>
                 </div>
@@ -179,12 +175,10 @@
         <div class="col-md-4 col-lg-3 mb-4">
             <div class="card p-3 sticky-top" style="top: 20px; max-height: 90vh; overflow-y: auto;">
                 <h5 class="fw-bold mb-3 border-bottom pb-2">Kontrol Paneli</h5>
-                
                 <div id="sidebar-menu-mistakes" class="mb-2"></div>
                 <div id="sidebar-menu-unmastered" class="mb-3"></div>
                 <hr style="border-color: var(--border-color);">
                 <div id="sidebar-menu"></div>
-                
             </div>
         </div>
 
@@ -196,9 +190,8 @@
                         <h4 id="active-course-title" class="fw-bold m-0" style="color: var(--primary-color);">Ders Seçiniz</h4>
                         <div id="exam-progress-text" class="text-muted mt-1" style="font-size: 0.9rem; font-weight: 600;">Soru 0 / 0</div>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-secondary btn-sm" onclick="prevQuestion()"><i class="bi bi-chevron-left"></i> Önceki</button>
-                        <button class="btn btn-outline-secondary btn-sm" onclick="skipQuestion()">Geç <i class="bi bi-chevron-right"></i></button>
+                    <div class="d-flex gap-2" id="header-buttons">
+                        <!-- JS ile Doldurulacak -->
                     </div>
                 </div>
                 
@@ -236,27 +229,19 @@
     let activeMode = ''; // 'course', 'mistakes', 'unmastered'
     let currentCourseIndex = -1;
 
-    const PROXIES = [
-        "https://api.codetabs.com/v1/proxy?quest=",
-        "https://corsproxy.io/?",
-        "https://api.allorigins.win/get?url="
-    ];
+    const PROXIES = ["https://api.codetabs.com/v1/proxy?quest=", "https://corsproxy.io/?", "https://api.allorigins.win/get?url="];
 
     window.onload = function() {
         if(localStorage.getItem('aof_theme') === 'light') document.body.setAttribute('data-theme', 'light');
-        else document.body.setAttribute('data-theme', 'dark'); // Default Dark
+        else document.body.setAttribute('data-theme', 'dark');
         
-        updateThemeIcon();
-        generateInputs();
-
-        loadData();
+        updateThemeIcon(); generateInputs(); loadData();
 
         if(allCoursesData.length > 0) {
             document.getElementById('setup-panel').classList.add('hidden');
             document.getElementById('result-panel').classList.remove('hidden');
             document.getElementById('globalResetBtn').classList.remove('hidden');
-            renderSidebar();
-            showCourse(0);
+            renderSidebar(); showCourse(0);
         }
     };
 
@@ -266,21 +251,17 @@
         
         if(savedData) {
             allCoursesData = JSON.parse(savedData);
-            // Geriye dönük uyumluluk: Eski verilerde stats yoksa ekle
             allCoursesData.forEach(course => {
+                if(course.lastIndex === undefined) course.lastIndex = 0; // KALINAN YER HAFIZASI
                 course.questions.forEach(q => {
-                    if(!q.id) q.id = q.img; // Resim urlsini ID yap
+                    if(!q.id) q.id = q.img; 
                     if(!q.qStats) q.qStats = { mastery: 0, correct: 0, wrong: 0 };
                 });
             });
         }
         if(savedMistakes) {
             wrongBank = JSON.parse(savedMistakes);
-            // Uyumluluk
-            wrongBank.forEach(q => {
-                if(!q.id) q.id = q.img;
-                if(!q.qStats) q.qStats = { mastery: 0, correct: 0, wrong: 0 };
-            });
+            wrongBank.forEach(q => { if(!q.id) q.id = q.img; if(!q.qStats) q.qStats = { mastery: 0, correct: 0, wrong: 0 }; });
         }
     }
 
@@ -289,28 +270,19 @@
         localStorage.setItem('aof_wrong_bank', JSON.stringify(wrongBank));
     }
 
-    // --- DİNAMİK INPUT OLUŞTURUCU ---
     function generateInputs() {
-        const container = document.getElementById('input-container');
-        let html = '';
+        const container = document.getElementById('input-container'); let html = '';
         for(let i=1; i<=10; i++) {
-            html += `
-            <div class="input-group mb-2 course-row shadow-sm">
+            html += `<div class="input-group mb-2 course-row shadow-sm">
                 <span class="input-group-text fw-bold border-0" style="background: var(--border-color);">${i}</span>
                 <input type="text" class="form-control url-input border-0" placeholder="Ders Linkini Yapıştırın...">
                 <select class="form-select type-input border-0" style="max-width: 200px;">
-                    <option value="ara">Ara Sınav (Vize)</option>
-                    <option value="final">Final / Dönem Sonu</option>
-                    <option value="yaz-okulu">Yaz Okulu</option>
-                    <option value="tek-ders">Tek Ders</option>
+                    <option value="ara">Ara Sınav (Vize)</option><option value="final">Final / Dönem Sonu</option>
+                    <option value="yaz-okulu">Yaz Okulu</option><option value="tek-ders">Tek Ders</option>
                 </select>
                 <select class="form-select limit-input border-0" style="max-width: 100px;">
-                    <option value="2">2 Yıl</option>
-                    <option value="3">3 Yıl</option>
-                    <option value="4" selected>4 Yıl</option>
-                    <option value="5">5 Yıl</option>
-                </select>
-            </div>`;
+                    <option value="2">2 Yıl</option><option value="3">3 Yıl</option><option value="4" selected>4 Yıl</option><option value="5">5 Yıl</option>
+                </select></div>`;
         }
         container.innerHTML = html;
     }
@@ -338,174 +310,109 @@
             try {
                 const res = await fetch(proxy + encodeURIComponent(url));
                 if(!res.ok) continue;
-                if(proxy.includes('allorigins')) {
-                    const json = await res.json();
-                    if(json.contents) return json.contents;
-                } else {
-                    const text = await res.text();
-                    if(text && text.length > 500) return text;
-                }
+                if(proxy.includes('allorigins')) { const json = await res.json(); if(json.contents) return json.contents; }
+                else { const text = await res.text(); if(text && text.length > 500) return text; }
             } catch(e){}
-        }
-        return null;
+        } return null;
     }
 
     async function startProcess() {
-        let tasks = [];
-        const rows = document.querySelectorAll('.course-row');
+        let tasks = []; const rows = document.querySelectorAll('.course-row');
         rows.forEach(row => {
             const url = row.querySelector('.url-input').value.trim();
-            if(url !== "") tasks.push({ 
-                url: url, 
-                type: row.querySelector('.type-input').value, 
-                limit: parseInt(row.querySelector('.limit-input').value) 
-            });
+            if(url !== "") tasks.push({ url: url, type: row.querySelector('.type-input').value, limit: parseInt(row.querySelector('.limit-input').value) });
         });
-
         if(tasks.length === 0) { alert("Lütfen en az bir link girin."); return; }
 
-        document.getElementById('setup-panel').classList.add('hidden');
-        document.getElementById('loader').classList.remove('hidden');
-        
-        if (currentUni === 'anadolu') await processAnadolu(tasks);
-        else await processAta(tasks);
+        document.getElementById('setup-panel').classList.add('hidden'); document.getElementById('loader').classList.remove('hidden');
+        if (currentUni === 'anadolu') await processAnadolu(tasks); else await processAta(tasks);
 
         document.getElementById('loader').classList.add('hidden');
-
         if(allCoursesData.length > 0) {
-            saveData();
-            document.getElementById('result-panel').classList.remove('hidden');
+            saveData(); document.getElementById('result-panel').classList.remove('hidden');
             document.getElementById('globalResetBtn').classList.remove('hidden');
-            renderSidebar();
-            showCourse(0);
-        } else {
-            alert("Sınav bulunamadı. Linkleri kontrol edin."); location.reload();
-        }
+            renderSidebar(); showCourse(0);
+        } else { alert("Sınav bulunamadı."); location.reload(); }
     }
 
-    // --- ANADOLU ---
+    /* Anadolu Veri Çekme */
     async function processAnadolu(tasks) {
-        const startYear = parseInt(document.getElementById('startYear').value);
-        let completed = 0; let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
-
+        const startYear = parseInt(document.getElementById('startYear').value); let completed = 0; let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
         for (let task of tasks) {
-            let slug = "";
-            try { 
-                let cleanUrl = task.url.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '').replace('mobile/', '').replace(/^\//, ''); 
-                slug = cleanUrl.split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); 
-            } catch(e) { continue; }
-            
-            let courseTitle = slug.replace(/-/g, ' ').toUpperCase();
-            let existingCourse = allCoursesData.find(c => c.title === courseTitle);
-            let questionMap = new Map();
-            if (existingCourse) existingCourse.questions.forEach(q => questionMap.set(q.id, q));
-
-            let examsFound = 0; let currentYear = startYear; 
-            let urlSlugType = task.type === 'final' ? 'donem-sonu' : task.type;
+            let slug = ""; try { let cleanUrl = task.url.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '').replace('mobile/', '').replace(/^\//, ''); slug = cleanUrl.split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); } catch(e) { continue; }
+            let courseTitle = slug.replace(/-/g, ' ').toUpperCase(); let existingCourse = allCoursesData.find(c => c.title === courseTitle);
+            let questionMap = new Map(); if (existingCourse) existingCourse.questions.forEach(q => questionMap.set(q.id, q));
+            let examsFound = 0; let currentYear = startYear; let urlSlugType = task.type === 'final' ? 'donem-sonu' : task.type;
 
             while (examsFound < task.limit && currentYear >= 2012) {
                 completed += 0.5; updateLoader(completed, totalOps, `${courseTitle} (${currentYear})`);
                 let genUrl = `https://aofsoru.com/${slug}-${currentYear}-${currentYear+1}-yili-${urlSlugType}-sinavi-sinav-sorulari`;
                 const html = await fetchUrl(genUrl);
-
                 if(html && !html.includes("ARADIĞINIZ SAYFA BULUNAMADI") && !html.includes("404 -")) {
-                    const doc = new DOMParser().parseFromString(html, "text/html");
-                    const cards = doc.querySelectorAll('.card');
+                    const cards = new DOMParser().parseFromString(html, "text/html").querySelectorAll('.card');
                     if(cards.length > 0) {
                         examsFound++;
                         cards.forEach(card => {
-                            const img = card.querySelector('img.QuestionImg');
-                            let ans = card.getAttribute('data-value') || card.getAttribute('data-cevap');
+                            const img = card.querySelector('img.QuestionImg'); let ans = card.getAttribute('data-value') || card.getAttribute('data-cevap');
                             if(img) {
                                 let src = img.getAttribute('data-src') || img.getAttribute('src');
                                 if(src) {
-                                    if(src.startsWith('//')) src = 'https:'+src;
-                                    else if(src.startsWith('/')) src = 'https://image.aofsoru.com'+src;
+                                    if(src.startsWith('//')) src = 'https:'+src; else if(src.startsWith('/')) src = 'https://image.aofsoru.com'+src;
                                     const finalAns = ans ? ans.trim().toUpperCase() : "Bilinmiyor";
-                                    
-                                    if(!questionMap.has(src)) {
-                                        questionMap.set(src, { 
-                                            id: src, img: src, ans: finalAns, title: `${currentYear}-${currentYear+1} ${task.type.toUpperCase()}`,
-                                            qStats: { mastery: 0, correct: 0, wrong: 0 }
-                                        });
-                                    } else if(questionMap.get(src).ans === "Bilinmiyor" && finalAns !== "Bilinmiyor") {
-                                        questionMap.get(src).ans = finalAns;
-                                    }
+                                    if(!questionMap.has(src)) questionMap.set(src, { id: src, img: src, ans: finalAns, title: `${currentYear}-${currentYear+1} ${task.type.toUpperCase()}`, qStats: { mastery: 0, correct: 0, wrong: 0 } });
+                                    else if(questionMap.get(src).ans === "Bilinmiyor" && finalAns !== "Bilinmiyor") questionMap.get(src).ans = finalAns;
                                 }
                             }
                         });
                     }
-                }
-                currentYear--; await new Promise(r => setTimeout(r, 200));
+                } currentYear--; await new Promise(r => setTimeout(r, 200));
             }
-
             if(questionMap.size > 0) {
                 if (existingCourse) existingCourse.questions = Array.from(questionMap.values());
-                else allCoursesData.push({ title: courseTitle, questions: Array.from(questionMap.values()) });
+                else allCoursesData.push({ title: courseTitle, lastIndex: 0, questions: Array.from(questionMap.values()) });
             }
         }
     }
 
-    // --- ATA ---
+    /* ATA Veri Çekme */
     async function processAta(tasks) {
         let completed = 0; let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
         for (let task of tasks) {
             updateLoader(completed, totalOps, `ATA Ders Taranıyor...`);
-            const mainHtml = await fetchUrl(task.url.replace('mobile/', ''));
-            if(!mainHtml) continue;
-
+            const mainHtml = await fetchUrl(task.url.replace('mobile/', '')); if(!mainHtml) continue;
             const mainDoc = new DOMParser().parseFromString(mainHtml, "text/html");
             let courseTitle = (mainDoc.querySelector('h1')?.innerText || "ATA Ders").replace('Soruları', '').trim();
-
             let existingCourse = allCoursesData.find(c => c.title === courseTitle);
-            let questionMap = new Map();
-            if (existingCourse) existingCourse.questions.forEach(q => questionMap.set(q.id, q));
+            let questionMap = new Map(); if (existingCourse) existingCourse.questions.forEach(q => questionMap.set(q.id, q));
 
             let links = [];
             mainDoc.querySelectorAll('a').forEach(a => {
                 const href = a.getAttribute('href'); const text = (a.getAttribute('title') || a.innerText || "");
                 if(!href || text.toUpperCase().includes('DENEME')) return;
-                
                 let fullUrl = href.startsWith('http') ? href : 'https://ataaofsoru.com' + (href.startsWith('/') ? '' : '/') + href;
-                let kind = task.type === 'yaz-okulu' ? (href.includes('yaz') ? 'yaz' : null) : 
-                           task.type === 'ara' ? (href.includes('ara') || href.includes('vize') ? 'ara' : null) : 
-                           (href.includes('final') || href.includes('donem-sonu') ? 'final' : href.includes('butunleme') ? 'but' : null);
+                let kind = task.type === 'yaz-okulu' ? (href.includes('yaz') ? 'yaz' : null) : task.type === 'ara' ? (href.includes('ara') || href.includes('vize') ? 'ara' : null) : (href.includes('final') || href.includes('donem-sonu') ? 'final' : href.includes('butunleme') ? 'but' : null);
                 if(kind) links.push({ url: fullUrl, text: text, kind: kind, year: parseInt((href.match(/-(\d{4})-\d{4}-/) || [0,0])[1]) });
-            });
-            links.sort((a,b) => b.year - a.year);
+            }); links.sort((a,b) => b.year - a.year);
 
             let examsFound = 0;
             for (let link of links) {
-                if(examsFound >= task.limit) break;
-                completed += 0.5; updateLoader(completed, totalOps, `${link.year} Taranıyor...`);
-                
+                if(examsFound >= task.limit) break; completed += 0.5; updateLoader(completed, totalOps, `${link.year} Taranıyor...`);
                 const examHtml = await fetchUrl(link.url);
                 if(examHtml) {
-                    const doc = new DOMParser().parseFromString(examHtml, "text/html");
                     let foundAny = false;
-                    doc.querySelectorAll('img.content, img.QuestionImg').forEach(img => {
+                    new DOMParser().parseFromString(examHtml, "text/html").querySelectorAll('img.content, img.QuestionImg').forEach(img => {
                         let src = img.getAttribute('data-src') || img.getAttribute('src');
                         if(src) {
-                            if(src.startsWith('//')) src = 'https:'+src;
-                            else if(!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/')?'':'/') + src;
-
+                            if(src.startsWith('//')) src = 'https:'+src; else if(!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/')?'':'/') + src;
                             let ans = (img.closest('.question')?.getAttribute('data-correct') || img.closest('.card')?.getAttribute('data-value') || "Bilinmiyor").trim().toUpperCase();
-                            if(!questionMap.has(src)) {
-                                questionMap.set(src, { 
-                                    id: src, img: src, ans: ans.replace(/[^A-E]/g, ''), title: link.text,
-                                    qStats: { mastery: 0, correct: 0, wrong: 0 }
-                                });
-                                foundAny = true;
-                            }
+                            if(!questionMap.has(src)) { questionMap.set(src, { id: src, img: src, ans: ans.replace(/[^A-E]/g, ''), title: link.text, qStats: { mastery: 0, correct: 0, wrong: 0 } }); foundAny = true; }
                         }
-                    });
-                    if(foundAny) examsFound++;
-                }
-                await new Promise(r => setTimeout(r, 300));
+                    }); if(foundAny) examsFound++;
+                } await new Promise(r => setTimeout(r, 300));
             }
             if(questionMap.size > 0) {
                 if(existingCourse) existingCourse.questions = Array.from(questionMap.values());
-                else allCoursesData.push({ title: courseTitle, questions: Array.from(questionMap.values()) });
+                else allCoursesData.push({ title: courseTitle, lastIndex: 0, questions: Array.from(questionMap.values()) });
             }
         }
     }
@@ -514,90 +421,69 @@
 
     // --- ARAYÜZ ve NAVİGASYON ---
     function renderSidebar() {
-        const menu = document.getElementById('sidebar-menu');
-        menu.innerHTML = "";
+        const menu = document.getElementById('sidebar-menu'); menu.innerHTML = "";
         
-        // Yanlışlarım
-        const mMenu = document.getElementById('sidebar-menu-mistakes');
-        mMenu.innerHTML = `<div class="sidebar-item sidebar-mistakes" id="menu-item-mistakes" onclick="showMistakes()">
-            <span><i class="bi bi-x-octagon-fill"></i> Yanlışlarım</span>
-            <span class="badge bg-danger rounded-pill">${wrongBank.length}</span>
-        </div>`;
+        document.getElementById('sidebar-menu-mistakes').innerHTML = `<div class="sidebar-item sidebar-mistakes ${activeMode==='mistakes'?'active':''}" id="menu-item-mistakes" onclick="showMistakes()">
+            <span><i class="bi bi-x-octagon-fill"></i> Yanlışlarım</span><span class="badge bg-danger rounded-pill">${wrongBank.length}</span></div>`;
 
-        // Kavranmayanlar (Karma) - %100 olmayan tüm sorular
-        let unmasteredCount = 0;
-        allCoursesData.forEach(c => c.questions.forEach(q => { if(q.qStats.mastery < 100) unmasteredCount++; }));
-        
-        const uMenu = document.getElementById('sidebar-menu-unmastered');
-        uMenu.innerHTML = `<div class="sidebar-item sidebar-unmastered" id="menu-item-unmastered" onclick="showUnmastered()">
-            <span><i class="bi bi-shuffle"></i> Kavranmayan Karma</span>
-            <span class="badge bg-warning text-dark rounded-pill">${unmasteredCount}</span>
-        </div>`;
+        let unmasteredCount = 0; allCoursesData.forEach(c => c.questions.forEach(q => { if(q.qStats.mastery < 100) unmasteredCount++; }));
+        document.getElementById('sidebar-menu-unmastered').innerHTML = `<div class="sidebar-item sidebar-unmastered ${activeMode==='unmastered'?'active':''}" id="menu-item-unmastered" onclick="showUnmastered()">
+            <span><i class="bi bi-shuffle"></i> Kavranmayan Karma</span><span class="badge bg-warning text-dark rounded-pill">${unmasteredCount}</span></div>`;
 
-        // Dersler
         allCoursesData.forEach((course, index) => {
-            let cr = 0, wr = 0, m100 = 0;
-            course.questions.forEach(q => { cr+=q.qStats.correct; wr+=q.qStats.wrong; if(q.qStats.mastery===100) m100++; });
-            
-            menu.innerHTML += `
-                <div class="sidebar-item" id="menu-item-${index}" onclick="showCourse(${index})">
+            let m100 = 0; course.questions.forEach(q => { if(q.qStats.mastery===100) m100++; });
+            menu.innerHTML += `<div class="sidebar-item ${activeMode==='course' && currentCourseIndex===index ? 'active':''}" id="menu-item-${index}" onclick="showCourse(${index})">
                     <div class="text-truncate" style="max-width: 70%;">${course.title}</div>
-                    <div class="d-flex gap-1">
-                        <span class="stat-badge text-success border border-success" title="Öğrenilenler"><i class="bi bi-check-all"></i> ${m100}</span>
-                    </div>
+                    <div class="d-flex gap-1"><span class="stat-badge text-success border border-success"><i class="bi bi-check-all"></i> ${m100}</span></div>
                 </div>`;
         });
     }
 
-    function clearActiveMenu() {
-        document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+    function updateHeaderButtons() {
+        const header = document.getElementById('header-buttons');
+        let html = '';
+        if(activeMode === 'course') {
+            html += `<button class="btn btn-outline-warning btn-sm" onclick="resetPosition()" title="Kavrama puanları silinmez, sadece 1. soruya döner."><i class="bi bi-arrow-counterclockwise"></i> Başa Dön</button>`;
+        }
+        html += `<button class="btn btn-outline-secondary btn-sm" onclick="prevQuestion()"><i class="bi bi-chevron-left"></i> Önceki</button>
+                 <button class="btn btn-outline-secondary btn-sm" onclick="skipQuestion()">Geç <i class="bi bi-chevron-right"></i></button>`;
+        header.innerHTML = html;
     }
 
-    // --- EKRAN GÖSTERİMLERİ ---
+    // --- MOD SEÇİMLERİ ---
     function showCourse(index) {
-        clearActiveMenu();
-        document.getElementById(`menu-item-${index}`).classList.add('active');
         activeMode = 'course'; currentCourseIndex = index;
         const course = allCoursesData[index];
-        startExam(course.title, course.questions);
+        activeIndex = course.lastIndex || 0; // KALINAN YER
+        activeQuestions = course.questions; // Derste kopyalama yapmıyoruz, referans yeterli
+        renderSidebar(); updateHeaderButtons(); startExam(course.title);
     }
 
     function showMistakes() {
-        clearActiveMenu();
-        document.getElementById(`menu-item-mistakes`).classList.add('active');
-        activeMode = 'mistakes'; currentCourseIndex = -1;
-        startExam("Yanlış Cevaplananlar", wrongBank);
+        activeMode = 'mistakes'; currentCourseIndex = -1; activeIndex = 0;
+        activeQuestions = [...wrongBank]; // Shallow copy (Kuyruktan anlık silmek için)
+        renderSidebar(); updateHeaderButtons(); startExam("Yanlış Cevaplananlar");
     }
 
     function showUnmastered() {
-        clearActiveMenu();
-        document.getElementById(`menu-item-unmastered`).classList.add('active');
-        activeMode = 'unmastered'; currentCourseIndex = -1;
-        
-        let pool = [];
-        allCoursesData.forEach(c => c.questions.forEach(q => { if(q.qStats.mastery < 100) pool.push(q); }));
-        
-        // Fisher-Yates Karıştırma (Shuffle)
-        for (let i = pool.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [pool[i], pool[j]] = [pool[j], pool[i]];
-        }
-        startExam("Karma Kavrama Antrenmanı", pool);
+        activeMode = 'unmastered'; currentCourseIndex = -1; activeIndex = 0;
+        let pool = []; allCoursesData.forEach(c => c.questions.forEach(q => { if(q.qStats.mastery < 100) pool.push(q); }));
+        for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+        activeQuestions = pool; // Shufflelanmış Array
+        renderSidebar(); updateHeaderButtons(); startExam("Karma Kavrama Antrenmanı");
     }
 
-    function startExam(title, questionsArray) {
+    function startExam(title) {
         document.getElementById('active-course-title').innerText = title;
-        activeQuestions = questionsArray;
-        activeIndex = 0;
         renderSingleQuestion();
     }
 
     function renderSingleQuestion() {
         const area = document.getElementById('questions-area');
-        if(activeQuestions.length === 0) {
+        if(activeQuestions.length === 0 || activeIndex >= activeQuestions.length) {
             document.getElementById('exam-progress-text').innerText = `Tamamlandı`;
-            area.innerHTML = `<div class="text-center text-success mt-5"><i class="bi bi-trophy-fill" style="font-size: 4rem;"></i><h3 class="mt-3 fw-bold">Tebrikler! Bu bölümü bitirdiniz.</h3></div>`;
-            renderSidebar();
+            let extraHTML = activeMode === 'course' ? `<button class="btn btn-primary mt-3" onclick="resetPosition()">Tekrar Baştan Çöz</button>` : `<p class="mt-2 text-muted">Bu bölümdeki tüm soruları erittiniz.</p>`;
+            area.innerHTML = `<div class="text-center text-success mt-5"><i class="bi bi-trophy-fill" style="font-size: 4rem;"></i><h3 class="mt-3 fw-bold">Tebrikler!</h3>${extraHTML}</div>`;
             return;
         }
 
@@ -606,9 +492,7 @@
         
         area.innerHTML = `
         <div class="question-slide w-100">
-            <div class="text-center mb-3">
-                <span class="badge bg-secondary mb-2">${q.title}</span>
-            </div>
+            <div class="text-center mb-3"><span class="badge bg-secondary mb-2">${q.title}</span></div>
             <div class="text-center">
                 <img src="${q.img}" class="question-img shadow-sm" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'text-danger py-5\\'>Soru Görseli Yüklenemedi</div>'">
             </div>
@@ -630,85 +514,84 @@
 
     // --- CEVAPLAMA VE MANTIK ---
     function checkAnswer(btn, selected) {
-        const q = activeQuestions[activeIndex];
-        const correct = q.ans;
-        const container = document.getElementById('opts-container');
-        const feedback = document.getElementById('feedback-area');
-        
-        container.querySelectorAll('button').forEach(b => b.style.pointerEvents = 'none'); // Disable clicks
+        const q = activeQuestions[activeIndex]; const correct = q.ans;
+        const container = document.getElementById('opts-container'); const feedback = document.getElementById('feedback-area');
+        container.querySelectorAll('button').forEach(b => b.style.pointerEvents = 'none'); 
 
         if(!correct || correct === "Bilinmiyor" || correct === "") {
             btn.style.backgroundColor = "#f59e0b"; btn.style.color = "white";
             feedback.innerHTML = "<span class='text-warning'><i class='bi bi-exclamation-triangle'></i> Bu sorunun cevabı sistemde gizli.</span>"; 
-            setTimeout(nextQuestion, 1500);
-            return;
+            setTimeout(() => advanceLogic(true), 1500); return;
         }
 
         let isCorrect = (selected === correct);
 
-        // Orijinal soruyu bul ve güncelle (Eğer karma moddaysak referans orijinaldir ama işi garantiye alalım)
-        let globalQ = null;
-        allCoursesData.forEach(c => {
-            let found = c.questions.find(x => x.id === q.id);
-            if(found) globalQ = found;
-        });
-        if(!globalQ) globalQ = q; // Fallback
+        // Global soruyu bul
+        let globalQ = null; allCoursesData.forEach(c => { let f = c.questions.find(x => x.id === q.id); if(f) globalQ = f; });
+        if(!globalQ) globalQ = q; 
 
         if(isCorrect) {
             btn.classList.add('correct-green');
             feedback.innerHTML = "<span class='text-success'><i class='bi bi-check-circle-fill'></i> DOĞRU!</span>";
+            globalQ.qStats.correct++; globalQ.qStats.mastery = Math.min(100, globalQ.qStats.mastery + 50);
             
-            globalQ.qStats.correct++;
-            globalQ.qStats.mastery = Math.min(100, globalQ.qStats.mastery + 50);
-
-            // Yanlışlarımdan silme mantığı
-            if(activeMode === 'mistakes') {
-                wrongBank = wrongBank.filter(x => x.id !== q.id);
-            }
+            wrongBank = wrongBank.filter(x => x.id !== q.id); // Her halükarda doğruysa bankadan sil
         } else {
             btn.classList.add('wrong-red');
             feedback.innerHTML = `<span class='text-danger'><i class='bi bi-x-circle-fill'></i> YANLIŞ! Doğru Cevap: ${correct}</span>`;
             container.querySelectorAll('button').forEach(b => { if(b.innerText === correct) b.classList.add('correct-green'); });
+            globalQ.qStats.wrong++; globalQ.qStats.mastery = 0;
             
-            globalQ.qStats.wrong++;
-            globalQ.qStats.mastery = 0;
-
-            // Yanlışlarıma ekle (yoksa)
-            if(!wrongBank.find(x => x.id === q.id)) {
-                wrongBank.push(globalQ);
-            }
+            if(!wrongBank.find(x => x.id === q.id)) wrongBank.push(globalQ);
         }
 
-        saveData();
-        renderSidebar(); // Sidebar sayılarını güncelle
+        saveData(); renderSidebar();
+        setTimeout(() => advanceLogic(isCorrect), isCorrect ? 1200 : 2500);
+    }
 
-        // Otomatik Geçiş
-        setTimeout(() => {
-            if(activeMode === 'mistakes' && isCorrect) {
-                // Diziden eleman eksildi, index artırmaya gerek yok (aynı index yeni elemanı gösterir)
-                if(activeIndex >= activeQuestions.length) activeIndex = Math.max(0, activeQuestions.length - 1);
-            } else {
-                activeIndex++;
+    function advanceLogic(isCorrect) {
+        if (activeMode === 'mistakes' || activeMode === 'unmastered') {
+            // Karma veya Yanlış modundaysak, soruyu O ANKİ KUYRUKTAN(Ekrandan) SİL. 
+            // Sildiğimiz için activeIndex'i arttırmamıza gerek yok, bir sonraki soru otomatik olarak aynı indexe kayar.
+            activeQuestions.splice(activeIndex, 1);
+        } else {
+            // Ders modundaysak sadece indexi arttır ve kaldığı yeri kaydet.
+            activeIndex++;
+            if(activeMode === 'course') {
+                allCoursesData[currentCourseIndex].lastIndex = activeIndex;
+                saveData();
             }
-            renderSingleQuestion();
-        }, isCorrect ? 1200 : 2500); // Doğruysa 1.2sn, Yanlışsa 2.5sn bekle ki doğru cevabı görsün
+        }
+        renderSingleQuestion();
     }
 
     function nextQuestion() {
-        if(activeIndex < activeQuestions.length - 1) { activeIndex++; renderSingleQuestion(); }
-        else { activeIndex = activeQuestions.length; renderSingleQuestion(); } // Bitiş ekranı
+        if(activeIndex < activeQuestions.length) { 
+            activeIndex++; 
+            if(activeMode === 'course') { allCoursesData[currentCourseIndex].lastIndex = activeIndex; saveData(); }
+            renderSingleQuestion(); 
+        }
     }
     
     function prevQuestion() {
-        if(activeIndex > 0) { activeIndex--; renderSingleQuestion(); }
+        if(activeIndex > 0) { 
+            activeIndex--; 
+            if(activeMode === 'course') { allCoursesData[currentCourseIndex].lastIndex = activeIndex; saveData(); }
+            renderSingleQuestion(); 
+        }
     }
     function skipQuestion() { nextQuestion(); }
 
-    function fullReset() {
-        if(confirm("Tüm veriler, yanlışlar ve kavrama yüzdeleri SİLİNECEK! Emin misin?")) {
-            localStorage.clear(); location.reload();
+    function resetPosition() {
+        if(activeMode === 'course' && currentCourseIndex !== -1) {
+            activeIndex = 0;
+            allCoursesData[currentCourseIndex].lastIndex = 0;
+            saveData();
+            renderSingleQuestion();
         }
     }
+
+    function fullReset() { if(confirm("Tüm veriler, yanlışlar ve kavrama yüzdeleri SİLİNECEK! Emin misin?")) { localStorage.clear(); location.reload(); } }
     
     function toggleTheme() {
         const body = document.body;
