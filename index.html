@@ -73,7 +73,7 @@
     [data-theme="dark"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
 
     /* Tabs */
-    .uni-tab { cursor: pointer; border-bottom: 3px solid transparent; padding: 15px 25px; font-weight: 700; color: var(--text-color); opacity: 0.5; transition: 0.3s; }
+    .uni-tab { cursor: pointer; border-bottom: 3px solid transparent; padding: 15px 25px; font-weight: 700; color: var(--text-color); opacity: 0.6; transition: 0.3s; }
     .uni-tab:hover { opacity: 1; }
     .uni-tab.active { border-bottom: 3px solid var(--primary-color); color: var(--primary-color); opacity: 1; }
 
@@ -124,8 +124,8 @@
         </div>
     </div>
 </nav>
-<!-- Mobil için Alt Üniversite Tabları (Küçük Ekranlarda Gösterilecek) -->
-<div class="d-flex d-lg-none justify-content-center border-bottom bg-body">
+<!-- Mobil için Alt Üniversite Tabları (Beyazlık Düzeltildi) -->
+<div class="d-flex d-lg-none justify-content-center border-bottom" style="background-color: var(--nav-bg);">
     <div class="uni-tab active py-2" id="tab-anadolu-mobile" onclick="switchUni('anadolu')">ANADOLU</div>
     <div class="uni-tab py-2" id="tab-ata-mobile" onclick="switchUni('ata')">ATA</div>
 </div>
@@ -163,7 +163,7 @@
 <!-- SONUÇ PANELİ -->
 <div id="result-panel" class="hidden">
     <div class="row">
-        <!-- Sol Menü (Desktop'ta normal div, Mobilde Offcanvas) -->
+        <!-- Sol Menü -->
         <div class="col-lg-3 mb-4">
             <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="offcanvasSidebar" style="background-color: var(--bg-body); border-right: 1px solid var(--border-color);">
                 <div class="offcanvas-header border-bottom">
@@ -188,7 +188,8 @@
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center border-bottom pb-3 mb-4 gap-3">
                     <div>
                         <h4 id="active-course-title" class="fw-bold m-0" style="color: var(--primary-color);">Ders Seçiniz</h4>
-                        <div id="exam-progress-text" class="text-muted mt-1" style="font-size: 0.9rem; font-weight: 600;">Soru 0 / 0</div>
+                        <!-- Soru Sayısı Rengi Düzeltildi (text-muted silindi, style eklendi) -->
+                        <div id="exam-progress-text" class="mt-1" style="font-size: 0.95rem; font-weight: 700; color: var(--text-color);">Soru 0 / 0</div>
                     </div>
                     <div class="d-flex gap-2 w-100 w-md-auto justify-content-end" id="header-buttons">
                         <!-- JS ile Doldurulacak -->
@@ -321,7 +322,7 @@
         } else { alert("Sınav bulunamadı."); location.reload(); }
     }
 
-    async function processAnadolu(tasks) { /* Aynı Kod */ 
+    async function processAnadolu(tasks) { 
         const startYear = parseInt(document.getElementById('startYear').value); let completed = 0; let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
         for (let task of tasks) {
             let slug = ""; try { let cleanUrl = task.url.replace(/https?:\/\//, '').replace('www.', '').replace('aofsoru.com/', '').replace('mobile/', '').replace(/^\//, ''); slug = cleanUrl.split('-sinav-sorulari')[0].replace(/-\d{4}-\d{4}-yili.*/, ''); } catch(e) { continue; }
@@ -358,7 +359,7 @@
         }
     }
 
-    async function processAta(tasks) { /* Aynı Kod */
+    async function processAta(tasks) {
         let completed = 0; let totalOps = tasks.reduce((acc, t) => acc + t.limit, 0); 
         for (let task of tasks) {
             updateLoader(completed, totalOps, `ATA Ders Taranıyor...`);
@@ -398,7 +399,6 @@
 
     function updateLoader(val, max, text) { document.getElementById('progress-bar').style.width = (val%100)+"%"; document.getElementById('loader-log').innerText = text; }
 
-    // --- ARAYÜZ ve NAVİGASYON ---
     function renderSidebar() {
         const menu = document.getElementById('sidebar-menu'); menu.innerHTML = "";
         
@@ -433,7 +433,6 @@
         header.innerHTML = html;
     }
 
-    // --- MOD SEÇİMLERİ ---
     function showCourse(index) {
         closeOffcanvas(); activeMode = 'course'; currentCourseIndex = index;
         activeIndex = allCoursesData[index].lastIndex || 0; activeQuestions = allCoursesData[index].questions;
@@ -464,7 +463,6 @@
             area.innerHTML = `<div class="text-center text-success mt-5"><i class="bi bi-trophy-fill" style="font-size: 4rem;"></i><h3 class="mt-3 fw-bold">Tebrikler!</h3>${extraHTML}</div>`; return;
         }
 
-        // Karma modda sonsuz döngü (drill) mantığı kontrolü
         if (activeMode === 'unmastered' && activeIndex >= activeQuestions.length) activeIndex = 0;
 
         document.getElementById('exam-progress-text').innerText = `Soru ${activeIndex + 1} / ${activeQuestions.length}`;
@@ -492,7 +490,6 @@
         </div>`;
     }
 
-    // --- CEVAPLAMA VE MANTIK ---
     function checkAnswer(btn, selected) {
         const q = activeQuestions[activeIndex]; const correct = q.ans;
         const container = document.getElementById('opts-container'); const feedback = document.getElementById('feedback-area');
@@ -524,26 +521,14 @@
         }
 
         saveData(); renderSidebar();
-        setTimeout(() => advanceLogic(isCorrect), isCorrect ? 1000 : 2500); // Bekleme süreleri biraz daha kısaltıldı akıcı olması için
+        setTimeout(() => advanceLogic(isCorrect), isCorrect ? 1000 : 2500);
     }
 
     function advanceLogic(isCorrect) {
         const q = activeQuestions[activeIndex];
-
-        if (activeMode === 'mistakes') {
-            activeQuestions.splice(activeIndex, 1); // Yanlışlarımda direkt listeden siliniyor
-        } else if (activeMode === 'unmastered') {
-            if (q.qStats.mastery === 100) {
-                activeQuestions.splice(activeIndex, 1); // KAVRANAN SORU LİSTEDEN SİLİNİR (%100 olduğu an)
-            } else {
-                activeIndex++; // %100 değilse listede kalmaya devam eder, diğer soruya geçer
-            }
-        } else {
-            activeIndex++;
-            allCoursesData[currentCourseIndex].lastIndex = activeIndex;
-            saveData();
-        }
-        
+        if (activeMode === 'mistakes') { activeQuestions.splice(activeIndex, 1); } 
+        else if (activeMode === 'unmastered') { if (q.qStats.mastery === 100) { activeQuestions.splice(activeIndex, 1); } else { activeIndex++; } } 
+        else { activeIndex++; allCoursesData[currentCourseIndex].lastIndex = activeIndex; saveData(); }
         renderSingleQuestion();
     }
 
@@ -554,18 +539,12 @@
     }
     
     function prevQuestion() {
-        if(activeIndex > 0) { 
-            activeIndex--; 
-            if(activeMode === 'course') { allCoursesData[currentCourseIndex].lastIndex = activeIndex; saveData(); }
-            renderSingleQuestion(); 
-        }
+        if(activeIndex > 0) { activeIndex--; if(activeMode === 'course') { allCoursesData[currentCourseIndex].lastIndex = activeIndex; saveData(); } renderSingleQuestion(); }
     }
     function skipQuestion() { nextQuestion(); }
 
     function resetPosition() {
-        if(activeMode === 'course' && currentCourseIndex !== -1) {
-            activeIndex = 0; allCoursesData[currentCourseIndex].lastIndex = 0; saveData(); renderSingleQuestion();
-        }
+        if(activeMode === 'course' && currentCourseIndex !== -1) { activeIndex = 0; allCoursesData[currentCourseIndex].lastIndex = 0; saveData(); renderSingleQuestion(); }
     }
 
     function fullReset() { if(confirm("Tüm veriler, yanlışlar ve kavrama yüzdeleri SİLİNECEK! Emin misin?")) { localStorage.clear(); location.reload(); } }
