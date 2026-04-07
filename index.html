@@ -260,7 +260,7 @@
 
     function generateInputs() {
         const container = document.getElementById('input-container'); let html = '';
-        for(let i=1; i<=10; i++) {
+        for(let i=1; i<=12; i++) { // 10'dan 12'ye çıkarıldı
             html += `<div class="input-group mb-2 course-row shadow-sm flex-column flex-md-row">
                 <span class="input-group-text fw-bold border-0 d-none d-md-flex" style="background: var(--border-color);">${i}</span>
                 <input type="text" class="form-control url-input border-0 w-100 mb-1 mb-md-0" placeholder="${i}. Ders Linkini Yapıştırın...">
