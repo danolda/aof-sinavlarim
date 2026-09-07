@@ -231,12 +231,15 @@
       </div>
       <div class="modal-body">
         <label class="form-label fw-bold">Cloudflare Worker Proxy Adresiniz:</label>
-        <input type="text" id="customProxyInput" class="form-control mb-2" placeholder="melihbaba.m-emrekarakose55.workers.dev">
-        <small class="text-muted d-block mb-3">Başına https:// yazmasanız bile sistem otomatik olarak tamamlayacaktır.</small>
+        <input type="text" id="customProxyInput" class="form-control mb-2" placeholder="https://melihbaba.m-emrekarakose55.workers.dev/?url=">
+        <small class="text-muted d-block mb-3">Not: Eğer Chrome "Allow CORS" eklentisi kullanıyorsanız bu alanı tamamen boş bırakıp kaydedebilirsiniz.</small>
         
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <button class="btn btn-outline-primary btn-sm" onclick="testProxyConnection()"><i class="bi bi-wifi"></i> Bağlantıyı Test Et</button>
-            <span id="proxyTestResult" class="small"></span>
+        <div class="d-flex flex-column gap-2 mb-2">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-primary btn-sm" onclick="testProxyConnection()"><i class="bi bi-wifi"></i> Bağlantıyı Test Et</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="clearCustomProxy()"><i class="bi bi-x-circle"></i> Temizle (Varsayılan)</button>
+            </div>
+            <div id="proxyTestResult" class="small mt-1"></div>
         </div>
       </div>
       <div class="modal-footer border-top" style="border-color: var(--border-color);">
@@ -259,15 +262,12 @@
     let activeMode = ''; 
     let currentCourseIndex = -1;
 
-    // URL'yi temizleyip kesinlikle geçerli bir https:// adresi yapan yardımcı fonksiyon
     function cleanAndFormatProxyUrl(raw) {
         if (!raw) return '';
         let url = raw.trim();
-        // https:// veya http:// yoksa otomatik ekle
         if (!/^https?:\/\//i.test(url)) {
             url = 'https://' + url;
         }
-        // Sonunda ?url= yoksa uygun şekilde ekle
         if (!url.includes('?')) {
             url = url.endsWith('/') ? url + '?url=' : url + '/?url=';
         } else if (!url.endsWith('=') && !url.endsWith('&')) {
@@ -280,7 +280,7 @@
         const custom = cleanAndFormatProxyUrl(localStorage.getItem('aof_custom_proxy') || '');
         const list = [];
         
-        // 1. Kullanıcının Özel Cloudflare Worker'ı (En Öncelikli)
+        // 1. Özel Worker (Varsa)
         if (custom) {
             list.push({
                 name: "Özel Worker",
@@ -289,7 +289,14 @@
             });
         }
         
-        // 2. Yedek Açık Proxyler
+        // 2. Doğrudan Bağlantı (Allow CORS eklentisi açıkken doğrudan ve hızlı çalışır)
+        list.push({
+            name: "Doğrudan Bağlantı",
+            type: "raw",
+            buildUrl: (u) => u
+        });
+
+        // 3. Genel Yedek Proxyler
         list.push(
             {
                 name: "AllOrigins (Raw)",
@@ -300,11 +307,6 @@
                 name: "AllOrigins (JSON)",
                 type: "json",
                 buildUrl: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}&disableCache=true&_=${Date.now()}`
-            },
-            {
-                name: "ThingProxy",
-                type: "raw",
-                buildUrl: (u) => `https://thingproxy.freeboard.io/fetch/${u}`
             }
         );
         return list;
@@ -334,6 +336,12 @@
         }
     };
 
+    function clearCustomProxy() {
+        document.getElementById('customProxyInput').value = '';
+        localStorage.removeItem('aof_custom_proxy');
+        document.getElementById('proxyTestResult').innerHTML = `<span class="text-info">Özel proxy kaldırıldı. Genel proxyler veya CORS eklentisi kullanılacak.</span>`;
+    }
+
     function saveProxySettings() {
         let val = document.getElementById('customProxyInput').value.trim();
         if (val) {
@@ -346,7 +354,7 @@
         preferredProxyIndex = 0;
         const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
         if (modal) modal.hide();
-        alert("Proxy ayarları başarıyla kaydedildi!");
+        alert("Bağlantı ayarları kaydedildi!");
     }
 
     async function testProxyConnection() {
@@ -358,16 +366,35 @@
             val = cleanAndFormatProxyUrl(val);
             input.value = val;
             localStorage.setItem('aof_custom_proxy', val);
+        } else {
+            localStorage.removeItem('aof_custom_proxy');
         }
         preferredProxyIndex = 0;
 
         resEl.innerHTML = `<span class="text-warning"><i class="bi bi-hourglass-split"></i> Test ediliyor...</span>`;
         
-        const testContent = await fetchUrl("https://ataaofsoru.com");
-        if (testContent && testContent.length > 250) {
-            resEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Başarılı! Bağlantı kuruldu.</span>`;
-        } else {
-            resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Başarısız! Cloudflare Worker kodunuzu kontrol edin.</span>`;
+        const target = val ? (val + encodeURIComponent("https://ataaofsoru.com")) : "https://ataaofsoru.com";
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const res = await fetch(target, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (res.ok) {
+                resEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Başarılı! Bağlantı sorunsuz çalışıyor.</span>`;
+            } else {
+                resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Sunucu Hata Kodu Döndü (HTTP ${res.status}).</span>`;
+            }
+        } catch (err) {
+            if (val) {
+                resEl.innerHTML = `<div class="text-danger fw-bold mt-1">
+                    <i class="bi bi-shield-x"></i> SSL Uyarısı Alındı!<br>
+                    <small class="fw-normal text-muted">Yeni bir sekmede şu linki açıp <b>Gelişmiş > Siteye İlerle</b> deyin:<br>
+                    <a href="${val.split('?')[0]}" target="_blank" class="text-warning">${val.split('?')[0]}</a></small>
+                </div>`;
+            } else {
+                resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Bağlantı kurulamadı. Lütfen 'Allow CORS' eklentisini açın veya proxy girin.</span>`;
+            }
         }
     }
 
@@ -465,9 +492,7 @@
                     preferredProxyIndex = idx;
                     return content;
                 }
-            } catch(e) {
-                // Hata veya zaman aşımında sıradaki proxy'ye geçer
-            }
+            } catch(e) {}
         }
         return null;
     }
@@ -500,7 +525,7 @@
             showCourse(0);
         } else { 
             document.getElementById('setup-panel').classList.remove('hidden');
-            alert("Sorular çekilemedi!\n\nLütfen sağ üstteki Ayarlar (⚙️) butonundan 'Bağlantıyı Test Et' yaparak Worker durumunu doğrulayın."); 
+            alert("Sorular çekilemedi!\n\nLütfen Ayarlar (⚙️) menüsünden 'Bağlantıyı Test Et' yaparak bağlantınızı kontrol edin."); 
         }
     }
 
