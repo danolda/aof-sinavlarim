@@ -231,8 +231,8 @@
       </div>
       <div class="modal-body">
         <label class="form-label fw-bold">Cloudflare Worker Proxy Adresiniz:</label>
-        <input type="text" id="customProxyInput" class="form-control mb-2" placeholder="https://melihbaba.m-emrekarakose55.workers.dev/?url=">
-        <small class="text-muted d-block mb-3">Not: Eğer Chrome "Allow CORS" eklentisi kullanıyorsanız bu alanı tamamen boş bırakıp kaydedebilirsiniz.</small>
+        <input type="text" id="customProxyInput" class="form-control mb-2" placeholder="https://ornek.workers.dev/?url=">
+        <small class="text-muted d-block mb-3">Mobil için Cloudflare Worker adresinizi girmeniz önerilir. Boş bırakırsanız genel CORS proxyleri denenir.</small>
         
         <div class="d-flex flex-column gap-2 mb-2">
             <div class="d-flex align-items-center gap-2">
@@ -280,7 +280,7 @@
         const custom = cleanAndFormatProxyUrl(localStorage.getItem('aof_custom_proxy') || '');
         const list = [];
         
-        // 1. Özel Worker (Varsa)
+        // 1. Özel Worker
         if (custom) {
             list.push({
                 name: "Özel Worker",
@@ -289,15 +289,20 @@
             });
         }
         
-        // 2. Doğrudan Bağlantı (Allow CORS eklentisi açıkken doğrudan ve hızlı çalışır)
+        // 2. Doğrudan Bağlantı (Eklenti açıkken PC'de doğrudan çalışır)
         list.push({
             name: "Doğrudan Bağlantı",
             type: "raw",
             buildUrl: (u) => u
         });
 
-        // 3. Genel Yedek Proxyler
+        // 3. Mobil ve Eklentisiz Kullanım İçin Güçlü Genel Proxyler
         list.push(
+            {
+                name: "CorsProxy.io",
+                type: "raw",
+                buildUrl: (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`
+            },
             {
                 name: "AllOrigins (Raw)",
                 type: "raw",
@@ -339,7 +344,7 @@
     function clearCustomProxy() {
         document.getElementById('customProxyInput').value = '';
         localStorage.removeItem('aof_custom_proxy');
-        document.getElementById('proxyTestResult').innerHTML = `<span class="text-info">Özel proxy kaldırıldı. Genel proxyler veya CORS eklentisi kullanılacak.</span>`;
+        document.getElementById('proxyTestResult').innerHTML = `<span class="text-info">Özel proxy kaldırıldı. Genel proxyler kullanılacak.</span>`;
     }
 
     function saveProxySettings() {
@@ -373,29 +378,24 @@
 
         resEl.innerHTML = `<span class="text-warning"><i class="bi bi-hourglass-split"></i> Test ediliyor...</span>`;
         
-        const target = val ? (val + encodeURIComponent("https://ataaofsoru.com")) : "https://ataaofsoru.com";
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000);
-            const res = await fetch(target, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            
-            if (res.ok) {
-                resEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Başarılı! Bağlantı sorunsuz çalışıyor.</span>`;
-            } else {
-                resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Sunucu Hata Kodu Döndü (HTTP ${res.status}).</span>`;
-            }
-        } catch (err) {
-            if (val) {
-                resEl.innerHTML = `<div class="text-danger fw-bold mt-1">
-                    <i class="bi bi-shield-x"></i> SSL Uyarısı Alındı!<br>
-                    <small class="fw-normal text-muted">Yeni bir sekmede şu linki açıp <b>Gelişmiş > Siteye İlerle</b> deyin:<br>
-                    <a href="${val.split('?')[0]}" target="_blank" class="text-warning">${val.split('?')[0]}</a></small>
-                </div>`;
-            } else {
-                resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Bağlantı kurulamadı. Lütfen 'Allow CORS' eklentisini açın veya proxy girin.</span>`;
-            }
+        const testTargetUrl = "https://ataaofsoru.com";
+        const proxies = getProxyList();
+
+        for (let proxy of proxies) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
+                const target = proxy.buildUrl(testTargetUrl);
+                const res = await fetch(target, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (res.ok) {
+                    resEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Başarılı! (${proxy.name} üzerinden bağlandı)</span>`;
+                    return;
+                }
+            } catch (err) {}
         }
+        resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Bağlantı kurulamadı. Lütfen Cloudflare Worker proxy adresi girin.</span>`;
     }
 
     function loadData() {
@@ -473,9 +473,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-                const res = await fetch(target, { 
-                    signal: controller.signal
-                });
+                const res = await fetch(target, { signal: controller.signal });
                 clearTimeout(timeoutId);
 
                 if (!res.ok) continue;
@@ -525,7 +523,7 @@
             showCourse(0);
         } else { 
             document.getElementById('setup-panel').classList.remove('hidden');
-            alert("Sorular çekilemedi!\n\nLütfen Ayarlar (⚙️) menüsünden 'Bağlantıyı Test Et' yaparak bağlantınızı kontrol edin."); 
+            alert("Sorular çekilemedi!\n\nLütfen Ayarlar (⚙️) menüsünden bağlantınızı test edin veya Cloudflare Worker adresinizi girin."); 
         }
     }
 
@@ -651,28 +649,98 @@
                 const examHtml = await fetchUrl(link.url);
                 if(examHtml) {
                     let foundAny = false;
-                    new DOMParser().parseFromString(examHtml, "text/html").querySelectorAll('img.content, img.QuestionImg, img[src*="preview"], img[data-src*="preview"]').forEach(img => {
-                        let src = img.getAttribute('data-src') || img.getAttribute('src');
-                        if(src) {
-                            if(src.startsWith('//')) src = 'https:' + src; 
-                            else if(!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/') ? '' : '/') + src;
-                            
-                            let ans = (img.closest('.question')?.getAttribute('data-correct') || 
-                                       img.closest('.card')?.getAttribute('data-value') || 
-                                       img.closest('.card')?.getAttribute('data-cevap') || "Bilinmiyor").trim().toUpperCase();
-                            
-                            if(!questionMap.has(src)) { 
-                                questionMap.set(src, { 
-                                    id: src, 
-                                    img: src, 
-                                    ans: ans.replace(/[^A-E]/g, ''), 
-                                    title: link.text && link.text.length > 2 ? link.text : `${link.year} ${task.type.toUpperCase()}`, 
-                                    qStats: { mastery: 0, correct: 0, wrong: 0 } 
-                                }); 
-                                foundAny = true; 
+                    const doc = new DOMParser().parseFromString(examHtml, "text/html");
+                    
+                    // Cevap görselini filtreleme fonksiyonu
+                    const isAnswerImg = (img) => {
+                        const src = (img.getAttribute('data-src') || img.getAttribute('src') || '').toLowerCase();
+                        const alt = (img.getAttribute('alt') || '').toLowerCase();
+                        const cls = (img.className || '').toLowerCase();
+                        return src.includes('cevap') || src.includes('dogru') || src.includes('answer') ||
+                               alt.includes('cevap') || alt.includes('doğru') || alt.includes('dogru') ||
+                               cls.includes('cevap') || cls.includes('answer') ||
+                               Boolean(img.closest('.collapse, .card-footer, .answer, .cevap, .cozum, [id*="cevap"]'));
+                    };
+
+                    let cards = doc.querySelectorAll('.card, .question, .soru-kutusu');
+
+                    const parseSingleCard = (card) => {
+                        const imgs = Array.from(card.querySelectorAll('img'));
+                        if (imgs.length === 0) return;
+
+                        // Soru görseli: Cevap görseli olmayan ilk geçerli görsel
+                        let qImg = imgs.find(img => !isAnswerImg(img) && (
+                            img.matches('.QuestionImg, .content, [src*="preview"], [data-src*="preview"], [src*="ataaof"], [data-src*="ataaof"]') ||
+                            img.closest('.card-body, .question-body')
+                        )) || imgs.find(img => !isAnswerImg(img));
+
+                        if (!qImg) return;
+
+                        let src = qImg.getAttribute('data-src') || qImg.getAttribute('src');
+                        if (!src) return;
+                        if (src.startsWith('//')) src = 'https:' + src;
+                        else if (!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/') ? '' : '/') + src;
+
+                        // Doğru cevabı bulma
+                        let ans = card.getAttribute('data-value') || card.getAttribute('data-cevap') || card.getAttribute('data-correct') || card.getAttribute('data-answer') || '';
+
+                        // Kart metninden cevap arama (Doğru Cevap: C formatı)
+                        if (!ans || !/[A-E]/i.test(ans)) {
+                            const textMatch = (card.innerText || '').match(/(?:Doğru\s*Cevap|Cevap)\s*[:\s]*\(?([A-E])\)?/i);
+                            if (textMatch) ans = textMatch[1];
+                        }
+
+                        // Cevap görseli varsa onun alt veya url bilgisinden tespit
+                        if (!ans || !/[A-E]/i.test(ans)) {
+                            const ansImg = imgs.find(isAnswerImg);
+                            if (ansImg) {
+                                const aSrc = (ansImg.getAttribute('data-src') || ansImg.getAttribute('src') || '');
+                                const aAlt = (ansImg.getAttribute('alt') || '') + ' ' + (ansImg.getAttribute('title') || '');
+                                const m = (aAlt + ' ' + aSrc).match(/(?:Doğru\s*Cevap|cevap|dogru|correct)?\s*[:\-_/]?\s*\(?([A-E])\)?/i);
+                                if (m) ans = m[1];
                             }
                         }
-                    }); 
+
+                        const finalAns = ans ? ans.trim().toUpperCase().replace(/[^A-E]/g, '') : "Bilinmiyor";
+
+                        if (!questionMap.has(src)) {
+                            questionMap.set(src, {
+                                id: src,
+                                img: src,
+                                ans: finalAns || "Bilinmiyor",
+                                title: link.text && link.text.length > 2 ? link.text : `${link.year || ''} ${task.type.toUpperCase()}`.trim(),
+                                qStats: { mastery: 0, correct: 0, wrong: 0 }
+                            });
+                            foundAny = true;
+                        } else if (questionMap.get(src).ans === "Bilinmiyor" && finalAns && finalAns !== "Bilinmiyor") {
+                            questionMap.get(src).ans = finalAns;
+                        }
+                    };
+
+                    if (cards.length > 0) {
+                        cards.forEach(parseSingleCard);
+                    } else {
+                        // Kart kapsayıcısı bulunamazsa görseller taranır fakat cevap görselleri elenir
+                        doc.querySelectorAll('img.content, img.QuestionImg, img[src*="preview"], img[data-src*="preview"]').forEach(img => {
+                            if (isAnswerImg(img)) return;
+                            let src = img.getAttribute('data-src') || img.getAttribute('src');
+                            if (src) {
+                                if(src.startsWith('//')) src = 'https:' + src;
+                                else if(!src.startsWith('http')) src = 'https://image.ataaofsoru.com' + (src.startsWith('/') ? '' : '/') + src;
+                                if (!questionMap.has(src)) {
+                                    questionMap.set(src, {
+                                        id: src,
+                                        img: src,
+                                        ans: "Bilinmiyor",
+                                        title: link.text && link.text.length > 2 ? link.text : `${link.year || ''} ${task.type.toUpperCase()}`.trim(),
+                                        qStats: { mastery: 0, correct: 0, wrong: 0 }
+                                    });
+                                    foundAny = true;
+                                }
+                            }
+                        });
+                    }
+
                     if(foundAny) examsFound++;
                 } 
                 await new Promise(r => setTimeout(r, 200));
@@ -746,7 +814,7 @@
         closeOffcanvas(); 
         activeMode = 'mistakes'; 
         currentCourseIndex = -1; 
-        activeIndex = 0;
+        activeIndex = 0; 
         activeQuestions = [...wrongBank]; 
         renderSidebar(); 
         updateHeaderButtons(); 
@@ -757,7 +825,7 @@
         closeOffcanvas(); 
         activeMode = 'unmastered'; 
         currentCourseIndex = -1; 
-        activeIndex = 0;
+        activeIndex = 0; 
         let pool = []; 
         allCoursesData.forEach(c => c.questions.forEach(q => { if(q.qStats.mastery < 100) pool.push(q); }));
         for (let i = pool.length - 1; i > 0; i--) { 
@@ -787,7 +855,7 @@
         if (activeMode === 'unmastered' && activeIndex >= activeQuestions.length) activeIndex = 0;
 
         document.getElementById('exam-progress-text').innerText = `Soru ${activeIndex + 1} / ${activeQuestions.length}`;
-        const q = activeQuestions[activeIndex];
+        const q = activeQuestions[activeIndex]; 
         
         area.innerHTML = `
         <div class="question-slide w-100">
@@ -850,7 +918,7 @@
         }
 
         saveData(); 
-        renderSidebar();
+        renderSidebar(); 
         setTimeout(() => advanceLogic(isCorrect), isCorrect ? 1000 : 2500);
     }
 
