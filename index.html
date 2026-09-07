@@ -107,7 +107,7 @@
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg border-bottom px-4 sticky-top" style="background-color: var(--nav-bg); z-index: 1040;">
     <div class="container-fluid">
-        <!-- Mobil Hamburger Menü -->
+        <!-- Mobil Menü Butonu -->
         <button class="btn btn-outline-primary d-lg-none me-3 border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasSidebar">
             <i class="bi bi-list fs-3"></i>
         </button>
@@ -211,7 +211,7 @@
 </div>
 </div>
 
-<!-- YÜKLENİYOR EKRANI -->
+<!-- YÜKLENİYOR -->
 <div id="loader" class="loading-overlay hidden">
     <div class="spinner-border" style="width: 4rem; height: 4rem; color: var(--primary-color);"></div>
     <h3 class="mt-4 fw-bold text-center px-3">Veriler Analiz Ediliyor...</h3>
@@ -221,7 +221,7 @@
     </div>
 </div>
 
-<!-- PROXY AYAR MODALI -->
+<!-- PROXY AYARLARI MODAL -->
 <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content" style="background-color: var(--bg-card); color: var(--text-color);">
@@ -230,13 +230,13 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <label class="form-label fw-bold">Özel CORS Proxy URL (İsteğe Bağlı):</label>
-        <input type="text" id="customProxyInput" class="form-control mb-2" placeholder="Örn: https://proxy-worker.adiniz.workers.dev/?url=">
-        <small class="text-muted d-block mb-3">Genel proxy'ler zaman zaman kısıtlama uygulayabilir. Kendi ücretsiz Cloudflare Worker proxy'nizi girerseniz %100 kesintisiz çalışır.</small>
+        <label class="form-label fw-bold">Cloudflare Worker Proxy Adresiniz:</label>
+        <input type="text" id="customProxyInput" class="form-control mb-2" placeholder="melihbaba.m-emrekarakose55.workers.dev">
+        <small class="text-muted d-block mb-3">Başına https:// yazmasanız bile sistem otomatik olarak tamamlayacaktır.</small>
         
-        <div class="d-flex gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2 mb-3">
             <button class="btn btn-outline-primary btn-sm" onclick="testProxyConnection()"><i class="bi bi-wifi"></i> Bağlantıyı Test Et</button>
-            <span id="proxyTestResult" class="align-self-center small"></span>
+            <span id="proxyTestResult" class="small"></span>
         </div>
       </div>
       <div class="modal-footer border-top" style="border-color: var(--border-color);">
@@ -251,7 +251,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // --- GLOBAL DEĞİŞKENLER ---
     let currentUni = 'anadolu'; 
     let allCoursesData = []; 
     let wrongBank = []; 
@@ -260,33 +259,42 @@
     let activeMode = ''; 
     let currentCourseIndex = -1;
 
-    // Aktif çalışan proxyler (corsproxy.io kaldırıldı)
-    let preferredProxyIndex = 0;
+    // URL'yi temizleyip kesinlikle geçerli bir https:// adresi yapan yardımcı fonksiyon
+    function cleanAndFormatProxyUrl(raw) {
+        if (!raw) return '';
+        let url = raw.trim();
+        // https:// veya http:// yoksa otomatik ekle
+        if (!/^https?:\/\//i.test(url)) {
+            url = 'https://' + url;
+        }
+        // Sonunda ?url= yoksa uygun şekilde ekle
+        if (!url.includes('?')) {
+            url = url.endsWith('/') ? url + '?url=' : url + '/?url=';
+        } else if (!url.endsWith('=') && !url.endsWith('&')) {
+            url = url + '&url=';
+        }
+        return url;
+    }
 
     function getProxyList() {
-        const custom = (localStorage.getItem('aof_custom_proxy') || '').trim();
+        const custom = cleanAndFormatProxyUrl(localStorage.getItem('aof_custom_proxy') || '');
         const list = [];
+        
+        // 1. Kullanıcının Özel Cloudflare Worker'ı (En Öncelikli)
         if (custom) {
             list.push({
-                name: "Özel Proxy",
+                name: "Özel Worker",
                 type: "raw",
-                buildUrl: (u) => {
-                    if (custom.endsWith('=')) return custom + encodeURIComponent(u);
-                    if (custom.endsWith('/')) return custom + encodeURIComponent(u);
-                    return custom + (custom.includes('?') ? '&url=' : '?url=') + encodeURIComponent(u);
-                }
+                buildUrl: (u) => custom + encodeURIComponent(u)
             });
         }
+        
+        // 2. Yedek Açık Proxyler
         list.push(
             {
                 name: "AllOrigins (Raw)",
                 type: "raw",
                 buildUrl: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
-            },
-            {
-                name: "Cors.lol",
-                type: "raw",
-                buildUrl: (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}`
             },
             {
                 name: "AllOrigins (JSON)",
@@ -301,6 +309,8 @@
         );
         return list;
     }
+
+    let preferredProxyIndex = 0;
 
     window.onload = function() {
         if(localStorage.getItem('aof_theme') === 'light') document.body.setAttribute('data-theme', 'light');
@@ -325,23 +335,39 @@
     };
 
     function saveProxySettings() {
-        const val = document.getElementById('customProxyInput').value.trim();
-        if (val) localStorage.setItem('aof_custom_proxy', val);
-        else localStorage.removeItem('aof_custom_proxy');
+        let val = document.getElementById('customProxyInput').value.trim();
+        if (val) {
+            val = cleanAndFormatProxyUrl(val);
+            document.getElementById('customProxyInput').value = val;
+            localStorage.setItem('aof_custom_proxy', val);
+        } else {
+            localStorage.removeItem('aof_custom_proxy');
+        }
         preferredProxyIndex = 0;
         const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
         if (modal) modal.hide();
-        alert("Proxy ayarları kaydedildi!");
+        alert("Proxy ayarları başarıyla kaydedildi!");
     }
 
     async function testProxyConnection() {
+        const input = document.getElementById('customProxyInput');
         const resEl = document.getElementById('proxyTestResult');
+        let val = input.value.trim();
+        
+        if (val) {
+            val = cleanAndFormatProxyUrl(val);
+            input.value = val;
+            localStorage.setItem('aof_custom_proxy', val);
+        }
+        preferredProxyIndex = 0;
+
         resEl.innerHTML = `<span class="text-warning"><i class="bi bi-hourglass-split"></i> Test ediliyor...</span>`;
+        
         const testContent = await fetchUrl("https://ataaofsoru.com");
-        if (testContent && testContent.length > 200) {
-            resEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Başarılı!</span>`;
+        if (testContent && testContent.length > 250) {
+            resEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> Başarılı! Bağlantı kuruldu.</span>`;
         } else {
-            resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Başarısız!</span>`;
+            resEl.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle-fill"></i> Başarısız! Cloudflare Worker kodunuzu kontrol edin.</span>`;
         }
     }
 
@@ -408,7 +434,6 @@
         }
     }
 
-    // 5 saniye zaman aşımlı, döngülü akıllı fetchUrl
     async function fetchUrl(url) {
         const proxies = getProxyList();
         const order = [preferredProxyIndex, ...proxies.map((_, i) => i).filter(i => i !== preferredProxyIndex)];
@@ -419,11 +444,10 @@
 
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 sn sınır
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
 
                 const res = await fetch(target, { 
-                    signal: controller.signal,
-                    headers: { 'Accept': 'text/html,application/xhtml+xml,application/json,*/*' }
+                    signal: controller.signal
                 });
                 clearTimeout(timeoutId);
 
@@ -438,11 +462,11 @@
                 }
 
                 if (content && typeof content === 'string' && content.length > 250) {
-                    preferredProxyIndex = idx; // Çalışanı hafızaya al
+                    preferredProxyIndex = idx;
                     return content;
                 }
             } catch(e) {
-                // Zaman aşımı veya cors hatasında diğer proxy'ye geçer
+                // Hata veya zaman aşımında sıradaki proxy'ye geçer
             }
         }
         return null;
@@ -476,7 +500,7 @@
             showCourse(0);
         } else { 
             document.getElementById('setup-panel').classList.remove('hidden');
-            alert("Sorular çekilemedi!\n\nOlası Sebepler:\n1. Proxy sunucuları meşgul olabilir (Navbar'daki ayar simgesinden bağlantıyı test edin).\n2. Girdiğiniz linkte seçilen türde (Ara/Final) soru bulunmuyor olabilir."); 
+            alert("Sorular çekilemedi!\n\nLütfen sağ üstteki Ayarlar (⚙️) butonundan 'Bağlantıyı Test Et' yaparak Worker durumunu doğrulayın."); 
         }
     }
 
@@ -584,7 +608,6 @@
                 }
             }); 
 
-            // Tekrarlanan linkleri temizle
             const seen = new Set();
             let links = rawLinks.filter(item => {
                 if (seen.has(item.url)) return false;
