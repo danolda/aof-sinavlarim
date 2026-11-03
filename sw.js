@@ -1,9 +1,9 @@
 /* AÖF Sınav Robotu — service worker
    Uygulama kabuğu: önce ağ (güncel sürüm), çevrimdışıysa önbellek.
    Soru görselleri: önce önbellek (çevrimdışı çalışma). Proxy istekleri önbelleğe alınmaz. */
-const SHELL = 'aof-shell-v22.0';
+const SHELL = 'aof-shell-v23.0';
 const IMG = 'aof-img-v1';
-const ASSETS = ['./', './index.html', './assets/app.css?v=22.0', './assets/app.js?v=22.0', './manifest.webmanifest',
+const ASSETS = ['./', './index.html', './assets/app.css?v=23.0', './assets/app.js?v=23.0', './manifest.webmanifest',
   './assets/icon.svg', './assets/icon-192.png', './assets/icon-512.png', './assets/apple-touch-icon.png'];
 const IMG_HOSTS = ['image.aofsoru.com', 'image.ataaofsoru.com'];
 const IMG_MAX = 4000;

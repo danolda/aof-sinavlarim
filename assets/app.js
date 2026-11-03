@@ -3,7 +3,7 @@
 /* AÖF Sınav Robotu v22 — çekirdek: depolama, göç, model */
 'use strict';
 
-const APP_VERSION = '22.0';
+const APP_VERSION = '23.0';
 const LS = {
   data: 'aof_full_data',        // dersler + sorular + soru istatistikleri (v21 ile aynı anahtar)
   wrongOld: 'aof_wrong_bank',   // v21: yanlış soruların tam kopyaları (göç sonrası silinir)
@@ -653,6 +653,7 @@ function render() {
     if (!m) continue;
     if (currentRoute && currentRoute.cleanup) { try { currentRoute.cleanup(); } catch (e) {} }
     currentRoute = { path: h, cleanup: null };
+    const vEl = $('#view'); vEl.dataset.tok = uid(); vEl._redraw = vEl._pick = vEl._quick = null;
     document.body.classList.toggle('immersive', !!r.opts.immersive);
     $$('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === r.opts.nav));
     closeSheet();
@@ -691,16 +692,18 @@ function viewHome(v) {
     v.innerHTML = `
       <div class="eyebrow">Hoş geldiniz</div>
       <h1 class="h1">Çıkmış sorularla,<br>kavrayarak çalışın.</h1>
-      <p class="lede">Ders linklerinizi ekleyin; robot geçmiş yılların sınavlarını getirir, siz de aralıklı tekrar ve sınav simülasyonuyla çalışırsınız.</p>
+      <p class="lede">Bölümünüzü ve yarıyılınızı seçin; robot derslerinizin geçmiş yıllardaki sınavlarını getirir, siz de aralıklı tekrar ve sınav simülasyonuyla çalışırsınız.</p>
       ${dataLoadFailed ? `<div class="notice err" style="margin-top:16px">${icon('alert')}<div>Kayıtlı veriler okunamadı. Bozuk kopya ayrıca saklandı; Ayarlar’dan yedeğinizi içe aktarabilirsiniz.</div></div>` : ''}
-      <div class="card card-pad section">
+      ${getProfile() ? homeTermSlot() : `<div class="card card-pad section">
         <ol class="steps">
-          <li><span><b>aofsoru.com</b> (Anadolu) ya da <b>ataaofsoru.com</b> (Atatürk) üzerinde dersinizin sayfasını açın.</span></li>
-          <li><span>Adres çubuğundaki linki kopyalayın ve <b>Ders Ekle</b> ekranına yapıştırın. Üniversite linkten otomatik anlaşılır.</span></li>
-          <li><span>Sınav türünü ve kaç sınav geriye gidileceğini seçip <b>Soruları getir</b>’e dokunun.</span></li>
+          <li><span>Üniversitenizi (<b>Anadolu</b> ya da <b>Atatürk</b>) ve önlisans / lisans düzeyini seçin.</span></li>
+          <li><span>Bölümünüzü arayıp bulun, ardından <b>yarıyılınıza</b> dokunun.</span></li>
+          <li><span>Çalışacağınız dersleri işaretleyip <b>Başlat</b>’a dokunun; linke gerek yok.</span></li>
         </ol>
-        <div class="btn-row" style="margin-top:18px"><a class="btn btn-primary" href="#/ekle">${icon('plus')} Ders ekle</a><button class="btn" data-act="importBackup">${icon('up')} Yedekten yükle</button></div>
-      </div>`;
+        <div class="btn-row" style="margin-top:18px"><a class="btn btn-primary" href="#/ekle/sec">${icon('book')} Bölümümü seç</a><button class="btn" data-act="importBackup">${icon('up')} Yedekten yükle</button></div>
+        <p class="help" style="margin-top:14px">Linkle eklemeyi tercih ederseniz: <a href="#/ekle/link" style="color:var(--accent)">Gelişmiş: link ile ekle</a></p>
+      </div>`}`;
+    fillHomeTerm(v);
     return;
   }
   const all = allUnique();
@@ -739,10 +742,12 @@ function viewHome(v) {
         ${modeTile('startFlagged', 'flag', 'İşaretliler', 'Sonraya bıraktıklarım', st.flagged)}
       </div>
     </div>
+    ${homeTermSlot()}
     <div class="section">
       <div class="section-head"><div class="h2">Dersler</div><a class="link" href="#/ekle">Ders ekle</a></div>
       <div class="list">${courses.map(courseCard).join('')}</div>
     </div>`;
+  fillHomeTerm(v);
 }
 
 /* ---------- Ders ayrıntısı ---------- */
@@ -876,7 +881,8 @@ function viewAdd(v) {
   const cy = currentAcademicYear();
   const draft = readJSON('aof_add_draft', null);
   v.innerHTML = `
-    <div class="eyebrow">Ders ekle</div>
+    <a class="btn btn-ghost btn-sm back-link" href="#/ekle">${icon('left')} Bölümden seç</a>
+    <div class="eyebrow">Gelişmiş · Link ile ekle</div>
     <h1 class="h1">Sınav linklerini girin</h1>
     <p class="lede">Dersin sayfasını <b>aofsoru.com</b> ya da <b>ataaofsoru.com</b> üzerinde açıp linki yapıştırın. Ders sayfası, “sınav soruları” sayfası veya tek bir sınavın linki olabilir.</p>
     <details class="card card-pad section" style="margin-top:16px"><summary style="cursor:pointer;font-weight:600">Link nasıl bulunur?</summary>
@@ -1573,7 +1579,8 @@ function exportBackup() {
   const data = {
     app: 'aof-sinav-robotu', version: 2, appVersion: APP_VERSION, exportedAt: new Date().toISOString(),
     courses, wrongIds: Array.from(wrongIds), examHistory, settings,
-    theme: localStorage.getItem(LS.theme) || 'dark', proxy: localStorage.getItem(LS.proxy) || ''
+    theme: localStorage.getItem(LS.theme) || 'dark', proxy: localStorage.getItem(LS.proxy) || '',
+    profile: readJSON('aof_profile', null)
   };
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   const name = `aof-yedek-${new Date().toISOString().slice(0, 10)}.json`;
@@ -1639,6 +1646,7 @@ function applyBackup(d) {
   for (const h of hist) if (h && h.id && !have.has(h.id)) examHistory.push(h);
   examHistory.sort((a, b) => a.at - b.at);
   if (d.proxy && !localStorage.getItem(LS.proxy)) localStorage.setItem(LS.proxy, d.proxy);
+  if (d.profile && d.profile.uni && !localStorage.getItem('aof_profile')) writeJSON('aof_profile', d.profile);
   dataLoadFailed = false;
   saveAll(); saveHistory();
   localStorage.setItem(LS.schema, '2');
@@ -1775,7 +1783,7 @@ document.addEventListener('click', (e) => {
 
 /* ---------- Rotalar ve başlatma ---------- */
 route(/^\/$/, viewHome, { nav: 'home' });
-route(/^\/ekle$/, viewAdd, { nav: 'add' });
+route(/^\/ekle\/link$/, viewAdd, { nav: 'add' });
 route(/^\/ders\/(.+)$/, viewCourse, { nav: 'home' });
 route(/^\/calis$/, viewStudy, { immersive: true });
 route(/^\/sinav$/, (v) => viewExamSetup(v), { nav: 'exam' });
@@ -1804,5 +1812,435 @@ function init() {
     }).catch(() => {});
   }
 }
+
+/* ---------- Bölüm → Yarıyıl → Ders kataloğu ---------- */
+const PROFILE_KEY = 'aof_profile';
+const UNI_INFO = {
+  anadolu: { name: 'Anadolu Üniversitesi', short: 'Anadolu AÖF', site: 'aofsoru.com', mark: 'A',
+    list: 'https://aofsoru.com/amp/aof-bolumleri', prog: 'https://aofsoru.com/amp/{id}-bolumu-sinav-sorulari', course: 'https://aofsoru.com/{id}-notlari-ozetleri-ve-sinav-sorulari' },
+  ata: { name: 'Atatürk Üniversitesi', short: 'Atatürk AÖF', site: 'ataaofsoru.com', mark: 'ATA',
+    list: 'https://ataaofsoru.com/ata-aof-bolumleri/amp', prog: 'https://ataaofsoru.com/{id}/amp', course: 'https://ataaofsoru.com/{id}' }
+};
+const LEVEL_NAMES = { onlisans: 'Önlisans', lisans: 'Lisans', 'lisans-tamamlama': 'Lisans Tamamlama' };
+const LEVEL_DESC = { onlisans: '2 yıllık programlar', lisans: '4 yıllık programlar', 'lisans-tamamlama': 'Önlisans mezunları için' };
+const catalogs = {};
+
+const FOLD_MAP = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a', 'î': 'i', 'û': 'u' };
+/** Türkçe harf duyarsız karşılaştırma anahtarı ("İşletme" ~ "isletme" ~ "ISLETME"). */
+function foldTr(s) {
+  return String(s || '').replace(/İ/g, 'i').replace(/I/g, 'ı').toLocaleLowerCase('tr').replace(/[çğıöşüâîû]/g, (c) => FOLD_MAP[c]).replace(/\s+/g, ' ').trim();
+}
+const SMALL_WORDS = new Set(['ve', 'ile', 'için', 'veya', 'ya', 'da', 'de']);
+function normName(s) {
+  s = String(s || '').replace(/\s+/g, ' ').trim().replace(/^Ingilizce/, 'İngilizce');
+  return s.split(' ').map((w, i) => { const lw = w.toLocaleLowerCase('tr'); return i && SMALL_WORDS.has(lw) ? lw : w; }).join(' ');
+}
+
+function getProfile() { const p = readJSON(PROFILE_KEY, null); return p && UNI_INFO[p.uni] && p.prog ? p : null; }
+function setProfile(patch) { const p = Object.assign({}, readJSON(PROFILE_KEY, null) || {}, patch, { at: Date.now() }); writeJSON(PROFILE_KEY, p); return p; }
+
+function mkCourse(uni, id, name, tpl) {
+  const code = uni === 'anadolu' ? ((id.match(/^([a-z]{2,4}\d{3}[a-z]?)-/) || [])[1] || '') : '';
+  return { id, uni, name: normName(name), code: code.toUpperCase(), url: (tpl || UNI_INFO[uni].course).replace('{id}', id), key: uni === 'ata' ? 'ata:/' + id : 'anadolu:' + id };
+}
+function hydrateCatalog(d) {
+  const list = (d.courses || []).map(([id, name]) => mkCourse(d.uni, id, name, d.courseUrl));
+  d.programs.forEach((p) => {
+    p.q = foldTr(p.name + ' ' + (p.faculty || ''));
+    (p.terms || []).forEach((t) => { t.courses = (t.c || []).map((i) => list[i]).filter(Boolean); });
+    p.terms = p.terms || [];
+  });
+  d.byId = new Map(d.programs.map((p) => [p.id, p]));
+  return d;
+}
+/** Statik kataloğu yükler (data/katalog-<uni>.json); yoksa sitedeki bölüm listesini canlı okur. */
+function loadCatalog(uni) {
+  if (!catalogs[uni]) {
+    catalogs[uni] = (async () => {
+      try {
+        const r = await fetch(`data/katalog-${uni}.json`, { credentials: 'omit' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const d = await r.json();
+        if (!d || !Array.isArray(d.programs)) throw new Error('bozuk katalog');
+        d.live = false;
+        return hydrateCatalog(d);
+      } catch (e) {
+        return liveCatalog(uni);
+      }
+    })();
+    catalogs[uni].catch(() => { delete catalogs[uni]; });
+  }
+  return catalogs[uni];
+}
+async function liveCatalog(uni) {
+  const r = await fetchHtml(UNI_INFO[uni].list);
+  if (!r.html) throw new Error(r.notFound ? 'Bölüm listesi bulunamadı' : 'Siteye ulaşılamadı (' + r.error + ')');
+  const programs = parseProgramList(parseDoc(r.html), uni);
+  if (!programs.length) throw new Error('Bölüm listesi okunamadı');
+  const levels = Object.keys(LEVEL_NAMES).filter((l) => programs.some((p) => p.level === l)).map((l) => ({ id: l, name: LEVEL_NAMES[l], count: programs.filter((p) => p.level === l).length }));
+  return hydrateCatalog({ v: 1, uni, live: true, levels, programs, courses: [] });
+}
+/** Canlı bölüm listesini, statik katalogda olmayan bölümlerle zenginleştirir. */
+async function refreshProgramList(uni) {
+  const cat = await loadCatalog(uni);
+  const live = await liveCatalog(uni);
+  let added = 0;
+  for (const p of live.programs) {
+    if (cat.byId.has(p.id)) continue;
+    cat.programs.push(p); cat.byId.set(p.id, p); added++;
+  }
+  cat.levels = Object.keys(LEVEL_NAMES).filter((l) => cat.programs.some((p) => p.level === l)).map((l) => ({ id: l, name: LEVEL_NAMES[l], count: cat.programs.filter((p) => p.level === l).length }));
+  return added;
+}
+
+function linkPath(href, host) {
+  try { return new URL(href, 'https://' + host).pathname; } catch (e) { return ''; }
+}
+function parseProgramList(doc, uni) {
+  const out = []; const seen = new Set();
+  if (uni === 'anadolu') {
+    let level = null, faculty = null;
+    doc.querySelectorAll('h2, a[href]').forEach((el) => {
+      if (el.tagName === 'H2') {
+        const h = el.textContent.replace(/\s+/g, ' ').trim();
+        if (/Önlisans|Ön Lisans/i.test(h)) { level = 'onlisans'; faculty = 'Açıköğretim Fakültesi'; }
+        else if (/Lisans/i.test(h)) { level = 'lisans'; faculty = 'Açıköğretim Fakültesi'; }
+        else if (/Fakültesi/i.test(h)) { level = 'lisans'; faculty = h; }
+        else level = null;
+        return;
+      }
+      if (!level) return;
+      const m = linkPath(el.getAttribute('href'), 'aofsoru.com').match(/^\/(?:amp\/)?(.+)-bolumu-sinav-sorulari$/);
+      if (!m || seen.has(m[1])) return;
+      seen.add(m[1]);
+      out.push({ id: m[1], name: normName(el.textContent), level, faculty, terms: [] });
+    });
+  } else {
+    doc.querySelectorAll('a[href]').forEach((el) => {
+      const m = linkPath(el.getAttribute('href'), 'ataaofsoru.com').replace(/\/amp$/, '').match(/^\/(ata-aof-.+-programi-\d+)$/);
+      if (!m || seen.has(m[1])) return;
+      seen.add(m[1]);
+      const id = m[1];
+      const level = /-lisans-tamamlama-programi-/.test(id) ? 'lisans-tamamlama' : /-onlisans-programi-/.test(id) ? 'onlisans' : 'lisans';
+      out.push({ id, name: normName(el.textContent), level, faculty: 'Açıköğretim Fakültesi', terms: [] });
+    });
+  }
+  return out;
+}
+function courseIdFromHref(href, uni) {
+  if (uni === 'anadolu') {
+    const p = linkPath(href, 'aofsoru.com').replace(/^\/(amp|mobile)\//, '/');
+    const m = p.match(/^\/([a-z]{2,4}\d{3}[a-z]?-.+?-dersi)(?:-notlari-ozetleri-ve)?-sinav-sorulari$/);
+    return m ? m[1] : null;
+  }
+  const m = linkPath(href, 'ataaofsoru.com').replace(/\/amp$/, '').match(/^\/(ata-aof-.+-dersi-\d+)$/);
+  return m ? m[1] : null;
+}
+function parseTermLabel(label) {
+  const m = label.replace(/YARIYIL/g, 'Yarıyıl').match(/(\d+)\s*\.?\s*(?:yarıyıl|yariyil|dönem)/i);
+  if (!m) return { n: null, s: null };
+  const n = +m[1];
+  return { n, s: /güz/i.test(label) ? 'Güz' : /bahar/i.test(label) ? 'Bahar' : (n % 2 ? 'Güz' : 'Bahar') };
+}
+/** Bölüm sayfasındaki başlık (yarıyıl) → ders linki yapısını okur. */
+function parseProgramPage(doc, uni) {
+  const h1 = doc.querySelector('h1');
+  const terms = []; let cur = null;
+  doc.querySelectorAll('h2, h3, h4, a[href]').forEach((el) => {
+    if (h1 && !(h1.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
+    if (/^H[2-4]$/.test(el.tagName)) {
+      if (el.querySelector('a')) return;
+      const label = el.textContent.replace(/\s+/g, ' ').trim();
+      if (label) { cur = { label, courses: [] }; terms.push(cur); }
+      return;
+    }
+    const id = courseIdFromHref(el.getAttribute('href'), uni);
+    if (!id || !cur || cur.courses.some((c) => c.id === id)) return;
+    cur.courses.push(mkCourse(uni, id, el.textContent));
+  });
+  return terms.filter((t) => t.courses.length).map((t) => { const { n, s } = parseTermLabel(t.label); return { n, s, label: n ? `${n}. Yarıyıl` : t.label, courses: t.courses }; });
+}
+async function ensureProgramTerms(uni, prog) {
+  if (prog.terms.length || prog.empty) return prog;
+  const r = await fetchHtml(UNI_INFO[uni].prog.replace('{id}', prog.id));
+  if (!r.html) throw new Error(r.notFound ? 'Bölüm sayfası bulunamadı' : 'Siteye ulaşılamadı (' + r.error + ')');
+  prog.terms = parseProgramPage(parseDoc(r.html), uni);
+  prog.liveTerms = true;
+  if (!prog.terms.length) prog.empty = true;
+  return prog;
+}
+async function findProgram(uni, id) {
+  const cat = await loadCatalog(uni);
+  let p = cat.byId.get(id);
+  if (!p && !cat.live) { await refreshProgramList(uni).catch(() => 0); p = cat.byId.get(id); }
+  if (!p) return { cat, prog: null };
+  await ensureProgramTerms(uni, p);
+  return { cat, prog: p };
+}
+
+/** Bu cihazda zaten eklenmiş ders (anahtar, kod ya da ad eşleşmesi). */
+function importedCourse(cc) {
+  return courses.find((c) => c.key === cc.key) ||
+    (cc.code && courses.find((c) => c.uni === cc.uni && c.code && c.code.toUpperCase() === cc.code)) ||
+    courses.find((c) => c.uni === cc.uni && foldTr(courseName(c)) === foldTr(cc.name));
+}
+function termCourses(prog, term) {
+  if (term === 'all') return prog.terms.flatMap((t) => t.courses);
+  if (term === 'sec') return prog.terms.filter((t) => !t.n).flatMap((t) => t.courses);
+  const t = prog.terms.find((x) => x.n === +term);
+  return t ? t.courses : [];
+}
+function seasonNow() { const m = new Date().getMonth(); return m >= 8 || m === 0 ? 'Güz' : m <= 5 ? 'Bahar' : 'Yaz'; }
+
+/* ---------- Görünümler ---------- */
+function wizHead(step, title, backHref, backLabel) {
+  const names = ['Üniversite', 'Düzey', 'Bölüm', 'Dersler'];
+  return `${backHref ? `<a class="btn btn-ghost btn-sm back-link" href="${backHref}">${icon('left')} ${esc(backLabel || 'Geri')}</a>` : ''}
+    <div class="wiz" role="img" aria-label="Adım ${step} / 4: ${names[step - 1]}">${names.map((n, i) => `<i class="${i < step ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="eyebrow">Adım ${step} / 4 · ${names[step - 1]}</div>
+    <h1 class="h1">${title}</h1>`;
+}
+function loadingHtml(msg) { return `<div class="empty"><div class="spinner" aria-hidden="true"></div><p>${esc(msg)}</p></div>`; }
+function errorHtml(msg, retryHref) {
+  return `<div class="notice err section">${icon('alert')}<div style="flex:1"><b>Liste yüklenemedi.</b><br><span class="small">${esc(msg)}</span>
+    <div class="btn-row" style="margin-top:10px"><a class="btn btn-sm" href="#/ayarlar">Bağlantı ayarları</a>${retryHref ? `<button class="btn btn-sm btn-primary" data-act="retryView">Yeniden dene</button>` : ''}</div></div></div>`;
+}
+function viewIsCurrent(v, token) { return v.dataset.tok === token; }
+function stamp(v) { return v.dataset.tok; }
+
+/** #/ekle — kayıtlı bölüm varsa doğrudan dersler, yoksa seçim. */
+function viewAddEntry(v) {
+  const p = getProfile();
+  location.replace(p ? `#/ekle/${p.uni}/b/${encodeURIComponent(p.prog)}` : '#/ekle/sec');
+}
+function viewPickUni(v) {
+  stamp(v);
+  const p = getProfile();
+  v.innerHTML = `${wizHead(1, 'Üniversitenizi seçin', p ? `#/ekle/${p.uni}/b/${encodeURIComponent(p.prog)}` : '', 'Derslerim')}
+    <p class="lede">Bölümünüzü bir kez seçin; dersleriniz yarıyıla göre listelensin. Link kopyalamaya gerek yok.</p>
+    <div class="list section" style="margin-top:18px">
+      ${['anadolu', 'ata'].map((u) => `<a class="uni-card" href="#/ekle/${u}">
+        <span class="uni-mark ${u}">${UNI_INFO[u].mark}</span>
+        <span class="uni-main"><span class="uni-name">${UNI_INFO[u].name}</span><span class="uni-sub">Açıköğretim Fakültesi · ${UNI_INFO[u].site}</span></span>
+        ${icon('right')}</a>`).join('')}
+    </div>
+    <div class="adv section"><a class="row card" href="#/ekle/link"><span class="row-icon">${icon('link')}</span><span class="row-main"><span class="row-title">Gelişmiş: link ile ekle</span><span class="row-sub">Ders ya da sınav sayfasının adresini kendiniz yapıştırın</span></span>${icon('right')}</a></div>`;
+}
+function viewPickLevel(v, uni) {
+  if (!UNI_INFO[uni]) return location.replace('#/ekle/sec');
+  const tok = stamp(v);
+  v.innerHTML = `${wizHead(2, 'Programınızın düzeyi', '#/ekle/sec', 'Üniversite')}
+    <p class="lede">${esc(UNI_INFO[uni].name)} Açıköğretim Fakültesi</p>
+    <div id="lvl" class="section" style="margin-top:18px">${loadingHtml('Bölümler yükleniyor…')}</div>`;
+  loadCatalog(uni).then((cat) => {
+    if (!viewIsCurrent(v, tok)) return;
+    $('#lvl').innerHTML = `<div class="rows">${cat.levels.map((l) => `<a class="row" href="#/ekle/${uni}/${l.id}">
+      <span class="row-icon level-icon">${l.id === 'onlisans' ? '2' : l.id === 'lisans' ? '4' : '+2'}</span>
+      <span class="row-main"><span class="row-title">${esc(l.name)}</span><span class="row-sub">${esc(LEVEL_DESC[l.id] || '')}</span></span>
+      <span class="row-end">${l.count} bölüm ${icon('right')}</span></a>`).join('')}</div>
+      ${cat.live ? `<p class="help" style="margin-top:10px">Liste siteden canlı okundu.</p>` : ''}`;
+  }).catch((e) => { if (viewIsCurrent(v, tok)) $('#lvl').innerHTML = errorHtml(e.message, true); });
+}
+function viewPickProgram(v, uni, level) {
+  if (!UNI_INFO[uni] || !LEVEL_NAMES[level]) return location.replace('#/ekle/sec');
+  const tok = stamp(v);
+  v.innerHTML = `${wizHead(3, 'Bölümünüz', `#/ekle/${uni}`, 'Düzey')}
+    <p class="lede">${esc(UNI_INFO[uni].short)} · ${esc(LEVEL_NAMES[level])}</p>
+    <div class="search-wrap" style="margin-top:16px">${icon('search')}<input class="input" id="psearch" type="search" placeholder="Bölüm ara: adalet, işletme, çocuk…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></div>
+    <div id="plist" class="section" style="margin-top:14px">${loadingHtml('Bölümler yükleniyor…')}</div>`;
+  const inp = $('#psearch');
+  let cat = null;
+  const draw = () => {
+    if (!cat) return;
+    const parts = foldTr(inp.value).split(' ').filter(Boolean);
+    const progs = cat.programs.filter((p) => p.level === level && parts.every((w) => p.q.includes(w)));
+    const prof = getProfile();
+    const rows = progs.map((p) => {
+      const sems = p.terms.filter((t) => t.n);
+      const n = (sems.length ? sems : p.terms).reduce((a, t) => a + t.courses.length, 0);
+      const el = sems.length && p.terms.some((t) => !t.n);
+      const sub = [p.faculty && p.faculty !== 'Açıköğretim Fakültesi' ? p.faculty : '', p.empty ? 'Sitede henüz ders yok' : n ? `${sems.length ? `${sems.length} yarıyıl · ` : ''}${n} ders${el ? ' + seçmeliler' : ''}` : 'Dersler açılınca okunur'].filter(Boolean).join(' · ');
+      const mine = prof && prof.uni === uni && prof.prog === p.id;
+      return `<a class="row${p.empty ? ' is-dim' : ''}" href="#/ekle/${uni}/b/${encodeURIComponent(p.id)}">
+        <span class="row-main"><span class="row-title">${esc(p.name)}</span><span class="row-sub">${esc(sub)}</span></span>
+        <span class="row-end">${mine ? '<span class="tag accent">Bölümüm</span>' : ''}${icon('right')}</span></a>`;
+    });
+    $('#plist').innerHTML = (rows.length ? `<div class="rows">${rows.join('')}</div>` : `<div class="empty"><div class="h2">Eşleşen bölüm yok</div><p>Yazımı değiştirin ya da sitedeki güncel listeyi getirin.</p></div>`) +
+      `<button class="btn btn-ghost btn-block" data-act="liveList" data-uni="${uni}" style="margin-top:12px">${icon('refresh')} Listede yok mu? Siteden yenile</button>`;
+  };
+  inp.addEventListener('input', draw);
+  v._redraw = draw;
+  loadCatalog(uni).then((c) => { if (!viewIsCurrent(v, tok)) return; cat = c; draw(); })
+    .catch((e) => { if (viewIsCurrent(v, tok)) $('#plist').innerHTML = errorHtml(e.message, true); });
+}
+
+let pickSel = new Set();
+function viewProgram(v, uni, progId) {
+  if (!UNI_INFO[uni]) return location.replace('#/ekle/sec');
+  const tok = stamp(v);
+  const prof0 = getProfile();
+  v.innerHTML = `<a class="btn btn-ghost btn-sm back-link" href="#/ekle/sec">${icon('left')} Bölümümü değiştir</a>
+    <div id="prog">${loadingHtml('Dersler yükleniyor…')}</div>`;
+  findProgram(uni, progId).then(({ cat, prog }) => {
+    if (!viewIsCurrent(v, tok)) return;
+    if (!prog) { $('#prog').innerHTML = `<div class="empty"><div class="h2">Bölüm bulunamadı</div><p>Bu bölüm sitedeki listede artık yok.</p><a class="btn btn-primary" href="#/ekle/sec">Bölüm seç</a></div>`; return; }
+    const same = prof0 && prof0.uni === uni && prof0.prog === prog.id;
+    const numbered = prog.terms.filter((t) => t.n);
+    const hasSec = prog.terms.some((t) => !t.n);
+    let term = same && prof0.term != null ? String(prof0.term) : numbered.length ? String(numbered[0].n) : 'all';
+    if (term !== 'all' && term !== 'sec' && !numbered.some((t) => String(t.n) === term)) term = numbered.length ? String(numbered[0].n) : 'all';
+    if (term === 'sec' && !hasSec) term = 'all';
+    const prof = setProfile({ uni, level: prog.level, prog: prog.id, progName: prog.name, term: same ? prof0.term ?? term : term,
+      type: same && prof0.type ? prof0.type : 'ara', limit: same && prof0.limit ? prof0.limit : 4 });
+    let type = TYPE_OPTIONS[uni].some((o) => o[0] === prof.type) ? prof.type : TYPE_OPTIONS[uni][0][0];
+    let limit = prof.limit || 4;
+    pickSel = new Set();
+    const cy = currentAcademicYear();
+    const season = seasonNow();
+    $('#prog').innerHTML = `
+      <div class="eyebrow">${esc(UNI_INFO[uni].short)} · ${esc(LEVEL_NAMES[prog.level] || '')}</div>
+      <h1 class="h1">${esc(prog.name)}</h1>
+      ${prog.empty ? `<div class="notice section">${icon('alert')}<div>Bu bölümün ders listesi sitede henüz yayımlanmamış. <a href="#/ekle/link" style="color:var(--accent)">Link ile ekle</a> seçeneğini kullanabilirsiniz.</div></div>` : `
+      <div class="section" style="margin-top:18px">
+        <div class="section-head"><div class="label">Yarıyıl</div><span class="help">Şu an ${season} dönemi</span></div>
+        <div class="chips term-chips" id="terms">
+          ${numbered.map((t) => `<button class="chip term${String(t.n) === term ? ' on' : ''}${t.s === season ? ' now' : ''}" data-term="${t.n}" aria-pressed="${String(t.n) === term}"><b>${t.n}</b><small>${t.s}</small></button>`).join('')}
+          ${hasSec ? `<button class="chip${term === 'sec' ? ' on' : ''}" data-term="sec">Seçmeli</button>` : ''}
+          <button class="chip${term === 'all' ? ' on' : ''}" data-term="all">Tümü</button>
+        </div>
+        ${numbered.length ? '' : `<p class="help" style="margin-top:8px">Bu bölümün dersleri sitede yarıyıla göre ayrılmamış; sitedeki gruplarıyla listelendi.</p>`}
+      </div>
+      <div class="section">
+        <div class="section-head"><div class="h2" id="ctitle">Dersler</div><button class="link" data-act="pickAll" id="pickAllBtn">Hepsini seç</button></div>
+        <div id="clist"></div>
+      </div>
+      <div class="card card-pad section pick-opts">
+        <div class="field"><span class="label">Sınav türü</span><div class="chips" id="typeChips">${TYPE_OPTIONS[uni].map((o) => `<button class="chip${o[0] === type ? ' on' : ''}" data-type="${o[0]}">${esc(o[1])}</button>`).join('')}</div></div>
+        <div class="field" style="margin-top:16px"><span class="label">Her dersten</span><div class="chips" id="limitChips">${[2, 4, 6, 10, 999].map((n) => `<button class="chip${n === limit ? ' on' : ''}" data-limit="${n}">${n === 999 ? 'Tüm sınavlar' : n + ' sınav'}</button>`).join('')}</div></div>
+        <div class="field" style="margin-top:16px"><label class="label" for="pceiling">En yeni öğretim yılı</label>
+          <select class="select" id="pceiling"><option value="">Otomatik (en güncel)</option>${Array.from({ length: 12 }, (_, k) => cy - k).map((y) => `<option value="${y}">${y}–${y + 1}</option>`).join('')}</select>
+          <span class="help">Robot bu yıldan geriye doğru seçtiğiniz sayıda sınav getirir. Eklenmiş bir dersi yeniden seçerseniz ilerlemeniz korunur.</span></div>
+      </div>
+      <div class="pick-bar"><button class="btn btn-primary btn-block" id="pickGo" data-act="startPicked" disabled>${icon('down')} <span id="pickGoTxt">Ders seçin</span></button></div>`}
+      <div class="adv section"><a class="row card" href="#/ekle/link"><span class="row-icon">${icon('link')}</span><span class="row-main"><span class="row-title">Gelişmiş: link ile ekle</span><span class="row-sub">Listede olmayan bir ders için adresi yapıştırın</span></span>${icon('right')}</a></div>
+      ${prog.liveTerms ? `<p class="help" style="margin-top:12px">Ders listesi siteden canlı okundu.</p>` : cat.generated ? `<p class="help" style="margin-top:12px">Ders listesi ${esc(UNI_INFO[uni].site)} kaynağından · ${esc(cat.generated.split('-').reverse().join('.'))}</p>` : ''}`;
+    if (prog.empty) return;
+
+    const updateGo = () => {
+      const n = pickSel.size;
+      const b = $('#pickGo'); b.disabled = !n;
+      $('#pickGoTxt').textContent = n ? `Başlat · ${n} ders` : 'Ders seçin';
+      const vis = termCourses(prog, term);
+      const allOn = vis.length && vis.every((c) => pickSel.has(c.id));
+      $('#pickAllBtn').textContent = allOn ? 'Seçimi kaldır' : 'Hepsini seç';
+    };
+    const row = (c) => {
+      const have = importedCourse(c);
+      return `<label class="row pick${have ? ' have' : ''}">
+        <input type="checkbox" class="cb" data-cid="${esc(c.id)}" ${pickSel.has(c.id) ? 'checked' : ''}>
+        <span class="row-main"><span class="row-title">${esc(c.name)}</span>
+        <span class="row-sub">${[c.code, have ? `${have.questions.length} soru · cihazda` : ''].filter(Boolean).map(esc).join(' · ') || 'Henüz eklenmedi'}</span></span>
+        ${have ? `<span class="tag ok">${icon('check')} Eklendi</span>` : ''}</label>`;
+    };
+    const drawList = () => {
+      const box = $('#clist');
+      let html = '';
+      if (term === 'all' || term === 'sec') {
+        const groups = prog.terms.filter((t) => term === 'all' || !t.n);
+        html = groups.map((t) => `<div class="group-label">${esc(t.label)}${t.s ? ` · ${t.s}` : ''}</div><div class="rows">${t.courses.map(row).join('')}</div>`).join('');
+        $('#ctitle').textContent = term === 'all' ? 'Tüm dersler' : 'Seçmeli dersler';
+      } else {
+        const t = prog.terms.find((x) => String(x.n) === term);
+        html = `<div class="rows">${t.courses.map(row).join('')}</div>`;
+        $('#ctitle').textContent = `${t.n}. yarıyıl dersleri`;
+      }
+      box.innerHTML = html;
+      updateGo();
+    };
+    $('#clist').addEventListener('change', (e) => {
+      const cb = e.target.closest('[data-cid]'); if (!cb) return;
+      if (cb.checked) pickSel.add(cb.dataset.cid); else pickSel.delete(cb.dataset.cid);
+      updateGo();
+    });
+    $('#terms').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-term]'); if (!b) return;
+      term = b.dataset.term;
+      $$('#terms .chip').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+      setProfile({ term });
+      drawList();
+    });
+    $('#typeChips').addEventListener('click', (e) => { const b = e.target.closest('[data-type]'); if (!b) return; type = b.dataset.type; $$('#typeChips .chip').forEach((x) => x.classList.toggle('on', x === b)); setProfile({ type }); });
+    $('#limitChips').addEventListener('click', (e) => { const b = e.target.closest('[data-limit]'); if (!b) return; limit = +b.dataset.limit; $$('#limitChips .chip').forEach((x) => x.classList.toggle('on', x === b)); setProfile({ limit }); });
+    v._pick = {
+      all() {
+        const vis = termCourses(prog, term);
+        const allOn = vis.every((c) => pickSel.has(c.id));
+        vis.forEach((c) => (allOn ? pickSel.delete(c.id) : pickSel.add(c.id)));
+        drawList();
+      },
+      async start() {
+        const byId = new Map(prog.terms.flatMap((t) => t.courses).map((c) => [c.id, c]));
+        const picked = Array.from(pickSel).map((id) => byId.get(id)).filter(Boolean);
+        if (!picked.length) return;
+        const ceiling = +($('#pceiling').value || 0) || null;
+        const ok = await runImport(picked.map((c) => ({ url: c.url, type, limit, ceiling, label: c.name })));
+        if (ok) pickSel = new Set();
+      }
+    };
+    drawList();
+  }).catch((e) => { if (viewIsCurrent(v, tok)) $('#prog').innerHTML = errorHtml(e.message, true); });
+}
+
+/** Panel: "Bu dönemki derslerim" kartı (katalog yüklenince doldurulur). */
+function homeTermSlot() { const p = getProfile(); return p ? `<div class="section" id="myTerm"></div>` : ''; }
+function fillHomeTerm(v) {
+  const p = getProfile(); const slot = $('#myTerm', v); if (!p || !slot) return;
+  const tok = v.dataset.tok;
+  findProgram(p.uni, p.prog).then(({ prog }) => {
+    if (!prog || !slot.isConnected || v.dataset.tok !== tok) return;
+    const numbered = prog.terms.filter((t) => t.n);
+    const t = numbered.find((x) => String(x.n) === String(p.term));
+    const list = t ? t.courses : termCourses(prog, p.term || 'all');
+    const label = t ? `${t.n}. yarıyıl · ${t.s}` : p.term === 'sec' ? 'Seçmeli dersler' : 'Tüm dersler';
+    const missing = list.filter((c) => !importedCourse(c));
+    const href = `#/ekle/${p.uni}/b/${encodeURIComponent(prog.id)}`;
+    slot.innerHTML = `
+      <div class="section-head"><div class="h2">Bu dönemki derslerim</div><a class="link" href="${href}">Düzenle</a></div>
+      <div class="card term-card">
+        <div class="term-card-head"><div style="min-width:0"><div class="term-card-title">${esc(prog.name)}</div><div class="row-sub">${esc(UNI_INFO[p.uni].short)} · ${esc(label)}</div></div>
+          <div class="pct num">${list.length - missing.length}<small>/${list.length}</small></div></div>
+        <div class="term-list">${list.slice(0, 12).map((c) => { const h = importedCourse(c); return h
+          ? `<a class="term-item have" href="#/ders/${encodeURIComponent(h.key)}">${icon('check')}<span>${esc(c.name)}</span></a>`
+          : `<span class="term-item">${icon('plus')}<span>${esc(c.name)}</span></span>`; }).join('')}</div>
+        <div class="btn-row term-actions">
+          ${missing.length ? `<button class="btn btn-primary" data-act="quickAddTerm">${icon('down')} Eksik ${missing.length} dersi ekle</button>` : `<span class="help">Bu dönemin tüm dersleri eklendi.</span>`}
+          <a class="btn btn-ghost" href="#/ekle/sec">Bölümümü değiştir</a>
+        </div>
+      </div>`;
+    v._quick = () => runImport(missing.map((c) => ({ url: c.url, type: p.type || 'ara', limit: p.limit || 4, label: c.name })));
+  }).catch(() => { if (slot.isConnected) slot.remove(); });
+}
+
+Object.assign(actions, {
+  retryView: () => render(),
+  async liveList(el) {
+    const uni = el.dataset.uni;
+    el.disabled = true; const old = el.innerHTML; el.innerHTML = `${icon('refresh')} Siteden okunuyor…`;
+    try { const n = await refreshProgramList(uni); toast(n ? `${n} yeni bölüm eklendi` : 'Liste güncel — yeni bölüm yok', 'ok'); }
+    catch (e) { toast(e.message || 'Liste okunamadı', 'err', 4000); }
+    el.disabled = false; el.innerHTML = old;
+    const v = $('#view'); if (v._redraw) v._redraw();
+  },
+  pickAll: () => { const v = $('#view'); if (v._pick) v._pick.all(); },
+  startPicked: () => { const v = $('#view'); if (v._pick) v._pick.start(); },
+  quickAddTerm: () => { const v = $('#view'); if (v._quick) v._quick(); }
+});
+
+route(/^\/ekle$/, viewAddEntry, { nav: 'add' });
+route(/^\/ekle\/sec$/, viewPickUni, { nav: 'add' });
+route(/^\/ekle\/(anadolu|ata)$/, viewPickLevel, { nav: 'add' });
+route(/^\/ekle\/(anadolu|ata)\/b\/(.+)$/, viewProgram, { nav: 'add' });
+route(/^\/ekle\/(anadolu|ata)\/(onlisans|lisans|lisans-tamamlama)$/, viewPickProgram, { nav: 'add' });
+/* ---------- Başlat ---------- */
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
