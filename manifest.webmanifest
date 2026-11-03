@@ -1,0 +1,17 @@
+{
+  "name": "AÖF Sınav Robotu",
+  "short_name": "Sınav Robotu",
+  "description": "Anadolu ve Atatürk AÖF çıkmış sorularıyla kavramaya dayalı çalışma, aralıklı tekrar ve deneme sınavı.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
