@@ -9,12 +9,30 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Sınav Robotu">
+<meta name="apple-mobile-web-app-title" content="AÖF Robotu">
+<meta name="application-name" content="AÖF Robotu">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="assets/favicon-16.png" type="image/png" sizes="16x16">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/app.css?v=24.0">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="assets/apple-touch-icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="assets/apple-touch-icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="assets/apple-touch-icon-120.png">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1320x2868.jpg" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1290x2796.jpg" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1206x2622.jpg" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1179x2556.jpg" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1284x2778.jpg" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1170x2532.jpg" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1125x2436.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1242x2688.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-828x1792.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-750x1334.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="assets/splash/splash-1242x2208.jpg" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="stylesheet" href="assets/app.css?v=25.0">
 <script>
   // Tema, ilk boyamadan önce uygulanır (yanıp sönmeyi önler)
   (function () {
@@ -54,12 +72,14 @@
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
     <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9zM12 11v6m0 0-2.5-2.5M12 17l2.5-2.5"/></symbol>
     <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M8.5 10H6v11h12V10h-2.5"/></symbol>
+    <symbol id="i-plussq" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></symbol>
   </defs>
 </svg>
 
 <header class="topbar" id="topbar">
   <a class="brand" href="#/" aria-label="AÖF Sınav Robotu — Panel">
-    <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="1.5" y="1.5" width="29" height="29" rx="6"/><path d="M9 23 16 8l7 15M11.6 17.5h8.8"/></svg></span>
+    <span class="brand-mark" aria-hidden="true"><img src="assets/logo.svg" alt="" width="30" height="30"></span>
     <span class="brand-text"><span class="brand-name">AÖF Sınav Robotu</span><span class="brand-sub">Anadolu · Atatürk</span></span>
   </a>
   <nav class="topnav" aria-label="Ana menü">
@@ -87,6 +107,6 @@
 <div id="modalRoot"></div>
 
 <noscript><p style="padding:24px">Bu uygulama JavaScript gerektirir.</p></noscript>
-<script src="assets/app.js?v=24.0"></script>
+<script src="assets/app.js?v=25.0"></script>
 </body>
 </html>

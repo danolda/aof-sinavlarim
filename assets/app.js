@@ -3,7 +3,7 @@
 /* AÖF Sınav Robotu v22 — çekirdek: depolama, göç, model */
 'use strict';
 
-const APP_VERSION = '24.0';
+const APP_VERSION = '25.0';
 const LS = {
   data: 'aof_full_data',        // dersler + sorular + soru istatistikleri (v21 ile aynı anahtar)
   wrongOld: 'aof_wrong_bank',   // v21: yanlış soruların tam kopyaları (göç sonrası silinir)
@@ -749,6 +749,7 @@ function viewHome(v) {
       <div class="eyebrow">Hoş geldiniz</div>
       <h1 class="h1">Çıkmış sorularla,<br>kavrayarak çalışın.</h1>
       <p class="lede">Bölümünüzü ve yarıyılınızı seçin; robot derslerinizin geçmiş yıllardaki sınavlarını getirir, siz de aralıklı tekrar ve sınav simülasyonuyla çalışırsınız.</p>
+      <div id="installSlot">${installCardHTML()}</div>
       ${dataLoadFailed ? `<div class="notice err" style="margin-top:16px">${icon('alert')}<div>Kayıtlı veriler okunamadı. Bozuk kopya ayrıca saklandı; Ayarlar’dan yedeğinizi içe aktarabilirsiniz.</div></div>` : ''}
       ${getProfile() ? homeTermSlot() : `<div class="card card-pad section">
         <ol class="steps">
@@ -776,6 +777,7 @@ function viewHome(v) {
     <div class="eyebrow">${esc(today)}</div>
     <h1 class="h1">Çalışma Paneli</h1>
     ${live && live.ids ? `<div class="notice" style="margin-top:14px">${icon('timer')}<div style="flex:1">Yarım kalan bir sınavınız var: <b>${esc(live.title)}</b></div><a class="btn btn-sm btn-primary" href="#/sinav/canli">Devam</a></div>` : ''}
+    <div id="installSlot">${installCardHTML()}</div>
     <div class="hero section" style="margin-top:16px">
       <div class="eyebrow">${primary.k}</div>
       <div class="hero-row">
@@ -1586,6 +1588,8 @@ function viewSettings(v) {
         </div>
       </div></div>
 
+    <div class="section" id="uygulama"><div class="section-head"><div class="h2">Uygulama</div></div><div id="installSet">${installSettingsHTML()}</div></div>
+
     <div class="section" id="baglanti"><div class="section-head"><div class="h2">Bağlantı</div></div>
       <div class="card card-pad">
         <div class="field"><label class="label" for="proxyIn">Cloudflare Worker adresiniz</label>
@@ -1754,6 +1758,9 @@ const actions = {
     localStorage.setItem(LS.theme, t); applyTheme(t);
     if (location.hash.startsWith('#/ayarlar')) $$('#themeSeg button').forEach((x) => x.classList.toggle('on', x.dataset.t === t));
   },
+  installApp: () => installApp(),
+  installDismiss: () => { localStorage.setItem(INSTALL_KEY, String(Date.now())); const c = $('#installCard'); if (c) c.remove(); toast('Ayarlar › Uygulama bölümünden istediğiniz zaman yükleyebilirsiniz.', '', 3600); },
+  closeSheetBtn: () => closeSheet(),
   startReview: (el) => startReviewSession(el.dataset.arg || null),
   startWrong: (el) => startWrongSession(el.dataset.arg || null),
   startUnmastered: (el) => startUnmasteredSession(el.dataset.arg || null),
@@ -1842,7 +1849,7 @@ const actions = {
   importBackup: () => importBackup(),
   async fullReset() {
     if (!(await confirmSheet({ title: 'Tüm veriler silinsin mi?', body: 'Dersler, kavrama yüzdeleri, yanlış defteri, notlar ve sınav geçmişi kalıcı olarak silinir. Bu işlem geri alınamaz.', ok: 'Her şeyi sil', danger: true }))) return;
-    const keep = new Set([LS.theme, LS.proxy]);
+    const keep = new Set([LS.theme, LS.proxy, INSTALL_KEY]);
     Object.keys(localStorage).filter((k) => k.startsWith('aof_') && !keep.has(k)).forEach((k) => localStorage.removeItem(k));
     try { if ('caches' in window) await caches.delete('aof-img-v1'); } catch (e) {}
     courses = []; wrongIds = new Set(); examHistory = []; session = null; exam = null; rebuildIndex(); dataLoadFailed = false;
@@ -1870,6 +1877,12 @@ route(/^\/sinav\/canli$/, viewExamLive, { immersive: true });
 route(/^\/sonuc\/(.+)$/, viewResult, { nav: 'exam' });
 route(/^\/ayarlar(?:\/baglanti)?$/, viewSettings, { nav: 'settings' });
 route(/^\/ara$/, viewSearch, { nav: '' });
+// Ana ekran kısayolları (manifest shortcuts)
+route(/^\/kisayol\/(tekrar|yanlis)$/, (v, k) => {
+  try { history.replaceState(null, '', '#/'); } catch (e) {}
+  viewHome(v); $$('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === 'home'));
+  setTimeout(() => (k === 'tekrar' ? startReviewSession(null) : startWrongSession(null)), 0);
+}, { nav: 'home' });
 
 function init() {
   applyTheme(localStorage.getItem(LS.theme) || 'dark');
@@ -2326,6 +2339,85 @@ route(/^\/ekle\/sec$/, viewPickUni, { nav: 'add' });
 route(/^\/ekle\/(anadolu|ata)$/, viewPickLevel, { nav: 'add' });
 route(/^\/ekle\/(anadolu|ata)\/b\/(.+)$/, viewProgram, { nav: 'add' });
 route(/^\/ekle\/(anadolu|ata)\/(onlisans|lisans|lisans-tamamlama)$/, viewPickProgram, { nav: 'add' });
+/* ---------- Uygulama olarak indir (PWA) ---------- */
+const INSTALL_KEY = 'aof_install_dismissed';
+let deferredPrompt = null;
+function isStandalone() {
+  try {
+    if (navigator.standalone === true) return true;
+    return !!(window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: minimal-ui)').matches));
+  } catch (e) { return false; }
+}
+function isIOS() {
+  const ua = navigator.userAgent || '';
+  return /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isIOSOtherBrowser() { return /crios|fxios|edgios|opios|gsa\//i.test(navigator.userAgent || ''); }
+function installMode() {
+  if (isStandalone()) return 'installed';
+  if (deferredPrompt) return 'prompt';
+  if (isIOS()) return 'ios';
+  return 'none';
+}
+function installDismissed() { return !!localStorage.getItem(INSTALL_KEY); }
+
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; refreshInstallUI(); });
+window.addEventListener('appinstalled', () => { deferredPrompt = null; toast('Uygulama yüklendi. Ana ekranınızdan açabilirsiniz.', 'ok', 4000); refreshInstallUI(); });
+
+function installCardHTML() {
+  const m = installMode();
+  if ((m !== 'prompt' && m !== 'ios') || installDismissed()) return '';
+  return `<div class="install-card section" id="installCard">
+    <img class="install-logo" src="assets/icon-192.png" alt="" width="56" height="56">
+    <div class="install-main">
+      <div class="install-title">Uygulama olarak indir</div>
+      <div class="install-sub">Ana ekrandan tek dokunuşla açın; tam ekran ve çevrimdışı çalışır.</div>
+      <div class="install-btns"><button class="btn btn-primary btn-sm" data-act="installApp">${icon('down')} ${m === 'ios' ? 'Nasıl eklenir?' : 'İndir'}</button><button class="btn btn-ghost btn-sm" data-act="installDismiss">Daha sonra</button></div>
+    </div>
+    <button class="install-x" data-act="installDismiss" aria-label="Kapat">${icon('x')}</button>
+  </div>`;
+}
+function installSettingsHTML() {
+  const m = installMode();
+  const body = m === 'installed'
+    ? `<div class="row" style="border:0;padding:0"><span class="row-icon" style="color:var(--ok)">${icon('check')}</span><span class="row-main"><span class="row-title">Uygulama olarak çalışıyor</span><span class="row-sub">Ana ekrandaki simgeden açtınız.</span></span></div>`
+    : `<div class="install-set"><img class="install-logo" src="assets/icon-192.png" alt="" width="48" height="48">
+        <div class="row-main"><div class="row-title">Uygulama olarak indir</div><div class="row-sub">${m === 'ios' ? 'Safari’de Paylaş › Ana Ekrana Ekle ile yüklenir.' : m === 'prompt' ? 'Tek dokunuşla cihazınıza yükleyin.' : 'Tarayıcı menüsünden “Uygulamayı yükle” ya da “Ana ekrana ekle”yi seçin.'}</div></div></div>
+       ${m === 'none' ? '' : `<button class="btn btn-primary btn-block" data-act="installApp" style="margin-top:14px">${icon('down')} ${m === 'ios' ? 'Nasıl eklenir?' : 'İndir'}</button>`}`;
+  return `<div class="card card-pad">${body}</div>`;
+}
+function refreshInstallUI() {
+  const slot = $('#installSlot'); if (slot) slot.innerHTML = installCardHTML();
+  const set = $('#installSet'); if (set) set.innerHTML = installSettingsHTML();
+}
+function iosGuide() {
+  const other = isIOSOtherBrowser();
+  openSheet(`
+    <div class="sheet-head"><div class="h2">Ana ekrana ekleyin</div></div>
+    <div class="ios-illu" aria-hidden="true">
+      <div class="ios-bar"><span class="ios-url">danolda.github.io</span></div>
+      <div class="ios-tools"><span>${icon('left')}</span><span>${icon('right')}</span><span class="ios-share">${icon('share')}</span><span>${icon('book')}</span><span>${icon('grid')}</span></div>
+      <div class="ios-menu"><span>Ana Ekrana Ekle</span>${icon('plussq')}</div>
+      <img class="ios-app" src="assets/icon-192.png" alt="" width="44" height="44"><span class="ios-app-name">AÖF Robotu</span>
+    </div>
+    <ol class="steps" style="margin-top:16px">
+      <li><span>${other ? 'Adres çubuğundaki' : 'Safari’de alttaki'} <b>Paylaş</b> <span class="kbd-ic">${icon('share')}</span> düğmesine dokunun${other ? '' : ' (görünmüyorsa önce <b>•••</b> menüsünü açın)'}.</span></li>
+      <li><span>Listeyi kaydırıp <b>Ana Ekrana Ekle</b> <span class="kbd-ic">${icon('plussq')}</span> seçeneğine dokunun.</span></li>
+      <li><span>Sağ üstteki <b>Ekle</b>’ye dokunun. <b>AÖF Robotu</b> simgesi ana ekranınıza gelir.</span></li>
+    </ol>
+    <p class="help" style="margin-top:12px">Ana ekrandan açıldığında tam ekran çalışır; verileriniz de daha kalıcı saklanır.</p>
+    <button class="btn btn-primary btn-block" data-act="closeSheetBtn" style="margin-top:16px">Tamam</button>`, { cls: 'ios-sheet' });
+}
+async function installApp() {
+  const m = installMode();
+  if (m === 'prompt') {
+    const p = deferredPrompt; deferredPrompt = null;
+    try { await p.prompt(); const r = await p.userChoice; if (r && r.outcome === 'dismissed') toast('İsterseniz daha sonra Ayarlar’dan yükleyebilirsiniz.'); } catch (e) {}
+    refreshInstallUI();
+  } else if (m === 'ios') iosGuide();
+  else if (m === 'installed') toast('Uygulama zaten yüklü.', 'ok');
+  else toast('Tarayıcı menüsünden “Uygulamayı yükle” ya da “Ana ekrana ekle”yi seçin.', '', 4500);
+}
 /* ---------- Başlat ---------- */
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

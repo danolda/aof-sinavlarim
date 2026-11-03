@@ -548,3 +548,43 @@ label.row.pick .tag svg { width: 12px; height: 12px; }
 .imp-note { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; font-size: 12.5px; line-height: 1.4; color: var(--accent); }
 .imp-note svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
 .term-split { margin: 10px 0 0; }
+
+/* ---------- v25: logo ve uygulama olarak indir ---------- */
+.brand-mark { display: block; flex: 0 0 auto; }
+.brand-mark img { display: block; width: 30px; height: 30px; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.35)); }
+.install-card { position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 16px 44px 16px 16px; border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface) 62%);
+  border: 1px solid var(--accent-line); box-shadow: 0 1px 0 rgba(255,255,255,.03) inset; }
+#installSlot:empty { display: none; }
+#installSlot .install-card { margin-top: 16px; }
+.install-logo { flex: 0 0 auto; width: 56px; height: 56px; border-radius: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 0 1px rgba(195,165,110,.25); }
+.install-set .install-logo { width: 48px; height: 48px; border-radius: 11px; }
+.install-main { min-width: 0; flex: 1; }
+.install-title { font-family: var(--serif); font-size: 18px; font-weight: 600; letter-spacing: .005em; }
+.install-sub { font-size: 13.5px; color: var(--text-2); margin-top: 3px; line-height: 1.4; }
+.install-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.install-x { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 10px; color: var(--muted); background: transparent; border: 0; }
+.install-x:hover { background: var(--surface-2); color: var(--text); }
+.install-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.install-set { display: flex; gap: 14px; align-items: center; }
+.install-set .row-title { font-weight: 600; }
+.install-set .row-sub { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.kbd-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--surface-3); color: var(--accent); vertical-align: -5px; margin: 0 1px; }
+.kbd-ic svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ios-illu { position: relative; height: 150px; border-radius: 16px; overflow: hidden; background: linear-gradient(#1a212d, #10141b); border: 1px solid var(--line); }
+[data-theme="light"] .ios-illu { background: linear-gradient(#eef0f4, #e2e5ea); }
+.ios-bar { position: absolute; left: 12px; right: 12px; bottom: 50px; height: 30px; border-radius: 10px; background: rgba(255,255,255,.08); display: grid; place-items: center; }
+[data-theme="light"] .ios-bar { background: rgba(0,0,0,.06); }
+.ios-url { font-size: 12px; color: var(--muted); }
+.ios-tools { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: space-around; color: var(--muted); }
+.ios-tools span { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; }
+.ios-tools svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ios-tools .ios-share { color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 1.5px var(--accent-line); animation: iosPulse 1.8s ease-in-out infinite; }
+.ios-menu { position: absolute; top: 14px; right: 14px; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,.25); color: var(--text); }
+.ios-menu svg { width: 18px; height: 18px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; }
+.ios-app { position: absolute; top: 16px; left: 18px; width: 44px; height: 44px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+.ios-app-name { position: absolute; top: 64px; left: 6px; width: 68px; text-align: center; font-size: 10px; color: var(--text-2); white-space: nowrap; }
+@keyframes iosPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .ios-tools .ios-share { animation: none; } }
+@media (display-mode: standalone) { #installSlot { display: none; } }

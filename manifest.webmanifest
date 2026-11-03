@@ -1,17 +1,95 @@
 {
+  "id": "/aof-sinavlarim/",
   "name": "AÖF Sınav Robotu",
-  "short_name": "Sınav Robotu",
+  "short_name": "AÖF Robotu",
   "description": "Anadolu ve Atatürk AÖF çıkmış sorularıyla kavramaya dayalı çalışma, aralıklı tekrar ve deneme sınavı.",
   "lang": "tr",
+  "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "background_color": "#0f1115",
   "theme_color": "#0f1115",
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "icons": [
-    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tekrar et",
+      "short_name": "Tekrar",
+      "description": "Tekrar zamanı gelen sorular",
+      "url": "./#/kisayol/tekrar",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Sınav modu",
+      "short_name": "Sınav",
+      "description": "Süreli deneme sınavı",
+      "url": "./#/sinav",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Yanlışlarım",
+      "short_name": "Yanlışlar",
+      "description": "Yanlış defteri",
+      "url": "./#/kisayol/yanlis",
+      "icons": [
+        {
+          "src": "assets/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

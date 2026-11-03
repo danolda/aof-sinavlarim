@@ -1,10 +1,13 @@
 /* AÖF Sınav Robotu — service worker
    Uygulama kabuğu: önce ağ (güncel sürüm), çevrimdışıysa önbellek.
    Soru görselleri: önce önbellek (çevrimdışı çalışma). Proxy istekleri önbelleğe alınmaz. */
-const SHELL = 'aof-shell-v24.0';
+const SHELL = 'aof-shell-v25.0';
 const IMG = 'aof-img-v1';
-const ASSETS = ['./', './index.html', './assets/app.css?v=24.0', './assets/app.js?v=24.0', './manifest.webmanifest',
-  './assets/icon.svg', './assets/icon-192.png', './assets/icon-512.png', './assets/apple-touch-icon.png'];
+const ASSETS = ['./', './index.html', './assets/app.css?v=25.0', './assets/app.js?v=25.0', './manifest.webmanifest',
+  './assets/icon.svg', './assets/logo.svg', './assets/favicon-32.png', './assets/favicon-16.png',
+  './assets/icon-192.png', './assets/icon-512.png', './assets/icon-192-maskable.png', './assets/icon-512-maskable.png',
+  './assets/apple-touch-icon.png', './assets/apple-touch-icon-180.png', './assets/apple-touch-icon-167.png',
+  './assets/apple-touch-icon-152.png', './assets/apple-touch-icon-120.png'];
 const IMG_HOSTS = ['image.aofsoru.com', 'image.ataaofsoru.com'];
 const IMG_MAX = 4000;
 
