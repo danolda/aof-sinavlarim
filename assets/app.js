@@ -3,7 +3,7 @@
 /* AÖF Sınav Robotu v22 — çekirdek: depolama, göç, model */
 'use strict';
 
-const APP_VERSION = '23.0';
+const APP_VERSION = '24.0';
 const LS = {
   data: 'aof_full_data',        // dersler + sorular + soru istatistikleri (v21 ile aynı anahtar)
   wrongOld: 'aof_wrong_bank',   // v21: yanlış soruların tam kopyaları (göç sonrası silinir)
@@ -323,28 +323,85 @@ function imgSrc(img) {
 const ANA_KINDS = { 'ara': 'Ara Sınav', 'donem-sonu': 'Dönem Sonu (Final)', 'yaz-okulu': 'Yaz Okulu', 'tek-ders': 'Tek Ders', 'butunleme': 'Bütünleme' };
 const ATA_KINDS = { 'ara': 'Ara Sınav', 'final': 'Final', 'butunleme': 'Bütünleme', 'yaz-okulu': 'Yaz Okulu', 'mevzuniyet-uc-ders': 'Mezuniyet (3 Ders)', 'mezuniyet-uc-ders': 'Mezuniyet (3 Ders)' };
 const ATA_TERMS = { 'guz': 'Güz', 'bahar': 'Bahar', 'yaz-okulu': 'Yaz' };
-const TYPE_OPTIONS = {
+/* Sınav türleri: her türün sitedeki URL karşılıkları. Sıra = dağıtımda artan sınavın gittiği öncelik. */
+const TYPE_DEFS = {
   anadolu: [
-    ['ara', 'Ara sınav (vize)', ['ara']],
-    ['final', 'Final (dönem sonu)', ['donem-sonu']],
-    ['ara-final', 'Ara + final', ['ara', 'donem-sonu']],
-    ['yaz-okulu', 'Yaz okulu', ['yaz-okulu']],
-    ['tek-ders', 'Tek ders', ['tek-ders']],
-    ['all', 'Tümü', null]
+    ['ara', 'Vize', 'vize', ['ara']],
+    ['final', 'Final', 'final', ['donem-sonu']],
+    ['yaz-okulu', 'Yaz okulu', 'yaz okulu', ['yaz-okulu']],
+    ['tek-ders', 'Tek ders', 'tek ders', ['tek-ders']]
   ],
   ata: [
-    ['ara', 'Ara sınav (vize)', ['ara']],
-    ['final', 'Final', ['final']],
-    ['butunleme', 'Bütünleme', ['butunleme']],
-    ['final-but', 'Final + bütünleme', ['final', 'butunleme']],
-    ['yaz-okulu', 'Yaz okulu', ['yaz-okulu']],
-    ['mezuniyet', 'Mezuniyet (3 ders)', ['mevzuniyet-uc-ders', 'mezuniyet-uc-ders']],
-    ['all', 'Tümü', null]
+    ['ara', 'Vize', 'vize', ['ara']],
+    ['final', 'Final', 'final', ['final']],
+    ['butunleme', 'Bütünleme', 'bütünleme', ['butunleme']],
+    ['yaz-okulu', 'Yaz okulu', 'yaz okulu', ['yaz-okulu']],
+    ['mezuniyet', 'Mezuniyet (3 ders)', 'mezuniyet', ['mevzuniyet-uc-ders', 'mezuniyet-uc-ders']]
   ]
 };
-function kindsFor(uni, type) {
-  const row = (TYPE_OPTIONS[uni] || []).find((r) => r[0] === type);
-  return row ? row[2] : (TYPE_OPTIONS[uni] || [])[0][2];
+const TYPE_ORDER = ['ara', 'final', 'butunleme', 'yaz-okulu', 'tek-ders', 'mezuniyet'];
+function typeDefs(uni) { return TYPE_DEFS[uni] || TYPE_DEFS.anadolu; }
+function typeName(uni, t) { const d = typeDefs(uni).find((r) => r[0] === t); return d ? d[2] : t; }
+/** Eski tek seçimli değeri (v23 ve öncesi) yeni tür dizisine çevirir. */
+const LEGACY_TYPES = { 'ara-final': ['ara', 'final'], 'final-but': ['final', 'butunleme'], 'donem-sonu': ['final'] };
+function normTypes(uni, v) {
+  const valid = typeDefs(uni).map((r) => r[0]);
+  let arr;
+  if (Array.isArray(v)) arr = v;
+  else if (v === 'all') arr = valid.slice();
+  else if (typeof v === 'string' && v) arr = LEGACY_TYPES[v] || [v];
+  else arr = [];
+  arr = valid.filter((t) => arr.includes(t));       // sabit sıra, yinelenmez, sitede olmayan atılır
+  return arr.length ? arr : ['ara'];
+}
+function typeOfKind(uni, kind) { const d = typeDefs(uni).find((r) => r[3].includes(kind)); return d ? d[0] : null; }
+/** N sınavı türlere olabildiğince eşit böler; artan sınavlar vize → final → bütünleme → yaz okulu → diğerleri sırasıyla verilir. */
+function splitCounts(types, n) {
+  const k = types.length, base = Math.floor(n / k), rem = n % k;
+  return types.map((t, i) => base + (i < rem ? 1 : 0));
+}
+function splitText(uni, types, n) {
+  if (n >= 999) return `Tüm sınavlar: ${types.map((t) => typeName(uni, t)).join(' + ')}`;
+  const c = splitCounts(types, n);
+  const parts = types.map((t, i) => [c[i], typeName(uni, t)]).filter((x) => x[0] > 0).map((x) => `${x[0]} ${x[1]}`);
+  return `${n} sınav: ${parts.join(' + ')}`;
+}
+/* Yenilik sırası: öğretim yılı → dönem (güz < bahar < yaz) → sınav (vize < final < bütünleme < yaz okulu < tek ders/mezuniyet) */
+const KIND_RANK = { 'ara': 1, 'donem-sonu': 2, 'final': 2, 'butunleme': 3, 'yaz-okulu': 4, 'tek-ders': 5, 'mevzuniyet-uc-ders': 5, 'mezuniyet-uc-ders': 5 };
+const TERM_RANK = { 'guz': 1, 'bahar': 2, 'yaz-okulu': 3 };
+function examRank(e) {
+  const term = e.term ? TERM_RANK[e.term] || 0 : (e.kind === 'yaz-okulu' || e.kind === 'tek-ders' ? 3 : 2);
+  return e.y1 * 100 + term * 10 + (KIND_RANK[e.kind] || 0);
+}
+function byNewest(a, b) { return examRank(b) - examRank(a) || (a.order || 0) - (b.order || 0); }
+function turkJoin(arr) { return arr.length < 2 ? arr.join('') : arr.slice(0, -1).join(', ') + ' ve ' + arr[arr.length - 1]; }
+/** Listeden türlere göre en güncel sınavları seçer; eksik kalan türün payı diğer seçili türlerin sıradaki en yenileriyle tamamlanır. */
+function selectExams(uni, listing, types, limit, ceiling) {
+  const pools = {}; types.forEach((t) => (pools[t] = []));
+  listing.forEach((e) => { const t = typeOfKind(uni, e.kind); if (t && pools[t] && e.y1 <= (ceiling || 9999)) pools[t].push(e); });
+  types.forEach((t) => pools[t].sort(byNewest));
+  if (limit >= 999) return { exams: types.flatMap((t) => pools[t]).sort(byNewest), notes: [] };
+  const shares = splitCounts(types, limit);
+  const picked = [], notes = [], short = [];
+  types.forEach((t, i) => {
+    const take = pools[t].slice(0, shares[i]);
+    picked.push(...take); pools[t] = pools[t].slice(take.length);
+    if (take.length < shares[i]) short.push([t, take.length, shares[i]]);
+  });
+  let missing = short.reduce((s, x) => s + x[2] - x[1], 0);
+  const from = {};
+  if (missing) {
+    const rest = types.flatMap((t) => pools[t].map((e) => [t, e])).sort((a, b) => byNewest(a[1], b[1]));
+    for (const [t, e] of rest) { if (!missing) break; picked.push(e); from[t] = (from[t] || 0) + 1; missing--; }
+    const filled = Object.keys(from).reduce((s, t) => s + from[t], 0);
+    const shortTxt = short.map(([t, got]) => got ? `${cap(typeName(uni, t))} için yalnız ${got} sınav bulundu` : `${cap(typeName(uni, t))} sınavı bulunamadı`).join('; ');
+    const src = types.filter((t) => from[t]).map((t) => typeName(uni, t));
+    let msg = shortTxt;
+    if (filled) msg += `, kalan ${filled} ${turkJoin(src)} ile tamamlandı`;
+    if (missing) msg += `${filled ? '; ' : ', '}seçili türlerde başka sınav olmadığından ${picked.length} sınav getirildi`;
+    notes.push(msg + '.');
+  }
+  return { exams: picked.sort(byNewest), notes };
 }
 function cleanPath(u) {
   let p = u.pathname.replace(/\/+$/, '');
@@ -422,7 +479,7 @@ function parseAtaListing(doc) {
     const url = 'https://ataaofsoru.com' + p;
     if (seen.has(url)) return; seen.add(url);
     raw.push({ url, base: m[1], y1: +m[2], y2: +m[3], term: m[4], kind: m[5], order: i,
-      label: `${m[2]}–${m[3]} ${ATA_TERMS[m[4]] || ''} ${ATA_KINDS[m[5]] || cap(m[5])}`.replace(/\s+/g, ' ') });
+      label: `${m[2]}–${m[3]} ${m[4] === m[5] ? '' : ATA_TERMS[m[4]] || ''} ${ATA_KINDS[m[5]] || cap(m[5])}`.replace(/\s+/g, ' ') });
   });
   // Sayfada başka derslere ait link varsa en sık görülen ders kökünü kullan
   const freq = {}; raw.forEach((r) => (freq[r.base] = (freq[r.base] || 0) + 1));
@@ -475,10 +532,10 @@ async function runPool(items, n, fn) {
 async function importCourse(task, ctx) {
   const info = analyzeLink(task.url);
   if (info.error || info.empty) throw new Error(info.error || 'Link boş');
-  const kinds = kindsFor(info.uni, task.type);
+  const types = normTypes(info.uni, task.types || task.type);
   const ceiling = task.ceiling || 9999;
-  const limit = task.limit || 9999;
-  let title = '', code = '', key = '', sourceUrl = '', exams = [];
+  const limit = task.limit || 999;
+  let title = '', code = '', key = '', sourceUrl = '', exams = [], notes = [];
 
   if (info.uni === 'anadolu') {
     const slug = info.slug;
@@ -496,24 +553,24 @@ async function importCourse(task, ctx) {
       throw new Error('Siteye ulaşılamadı (' + r.error + ')');
     }
     if (!title) title = anadoluTitle(parseDoc('<p></p>'), slug);
-    if (listing.length) {
-      exams = listing.filter((e) => (!kinds || kinds.includes(e.kind)) && e.y1 <= ceiling)
-        .sort((a, b) => b.y1 - a.y1 || a.order - b.order).slice(0, limit);
-    } else {
-      // Liste sayfası yoksa v21 gibi yıl tahminiyle dene
-      const ks = kinds || ['ara', 'donem-sonu'];
-      let y = Math.min(ceiling, currentAcademicYear());
-      for (; y >= 2012 && exams.length < limit; y--) {
+    if (!listing.length) {
+      // Liste sayfası yoksa v21 gibi yıl tahminiyle dene: her tür payını doldurana dek yıllar geriye taranır
+      const ks = types.flatMap((t) => typeDefs('anadolu').find((r) => r[0] === t)[3]);
+      const shares = limit >= 999 ? null : splitCounts(types, limit);
+      const enough = () => shares && types.every((t, i) => listing.filter((e) => typeOfKind('anadolu', e.kind) === t).length >= shares[i]);
+      let y = Math.min(ceiling, currentAcademicYear()), lastHit = y;
+      for (; y >= 2012 && !enough(); y--) {
+        if (shares && listing.length >= limit && lastHit - y > 3) break;   // eksik tür yıllardır yok: diğerleriyle tamamlanır
         for (const k of ks) {
-          if (exams.length >= limit) break;
           const url = `https://aofsoru.com/${slug}-${y}-${y + 1}-yili-${k}-sinavi-sinav-sorulari`;
           ctx.step(`${y}–${y + 1} ${ANA_KINDS[k] || k} aranıyor`);
           const rr = await fetchHtml(url, ctx.signal);
-          if (rr.html && parseAnadoluExam(parseDoc(rr.html)).length) exams.push({ url, y1: y, y2: y + 1, kind: k, label: `${y}–${y + 1} ${ANA_KINDS[k] || cap(k)}`, html: rr.html });
+          if (rr.html && parseAnadoluExam(parseDoc(rr.html)).length) { listing.push({ url, y1: y, y2: y + 1, kind: k, label: `${y}–${y + 1} ${ANA_KINDS[k] || cap(k)}`, html: rr.html }); lastHit = y; }
           else if (rr.error) throw new Error('Siteye ulaşılamadı (' + rr.error + ')');
         }
       }
     }
+    ({ exams, notes } = selectExams('anadolu', listing, types, limit, ceiling));
   } else {
     let courseUrl = info.courseUrl;
     if (!courseUrl && info.examUrl) {
@@ -532,11 +589,10 @@ async function importCourse(task, ctx) {
     if (!r.html) throw new Error(r.notFound ? 'Ders sayfası bulunamadı' : 'Siteye ulaşılamadı (' + r.error + ')');
     const doc = parseDoc(r.html);
     title = ataCourseTitle(doc);
-    exams = parseAtaListing(doc).filter((e) => (!kinds || kinds.includes(e.kind)) && e.y1 <= ceiling)
-      .sort((a, b) => b.y1 - a.y1 || a.order - b.order).slice(0, limit);
+    ({ exams, notes } = selectExams('ata', parseAtaListing(doc), types, limit, ceiling));
   }
 
-  if (!exams.length) throw new Error('Seçilen türde sınav bulunamadı');
+  if (!exams.length) throw new Error(`Seçilen türlerde (${types.map((t) => typeName(info.uni, t)).join(', ')}) sınav bulunamadı`);
   let done = 0;
   ctx.step(`0 / ${exams.length} sınav`);
   const results = await runPool(exams, localStorage.getItem(LS.proxy) ? 3 : 2, async (ex) => {
@@ -555,7 +611,7 @@ async function importCourse(task, ctx) {
     }));
   }
   if (!questions.length) throw new Error('Sorular okunamadı');
-  return { key, uni: info.uni, title, code, source: { url: sourceUrl, type: task.type, limit: task.limit }, questions, examsOk, examsTotal: exams.length };
+  return { key, uni: info.uni, title, code, source: { url: sourceUrl, types, limit: task.limit }, notes, questions, examsOk, examsTotal: exams.length };
 }
 /** Yeni çekilen dersi mevcut verilerle birleştirir; ilerleme korunur. */
 function mergeCourse(nc) {
@@ -805,7 +861,7 @@ function viewCourse(v, key) {
     <div class="section">
       <div class="section-head"><div class="h2">Ders işlemleri</div></div>
       <div class="rows">
-        <button class="row" data-act="refreshCourse" data-arg="${esc(c.key)}"><span class="row-icon">${icon('refresh')}</span><span class="row-main"><span class="row-title">Soruları güncelle</span><span class="row-sub">Yeni sınavları getirir, ilerlemeniz korunur</span></span></button>
+        <button class="row" data-act="refreshCourse" data-arg="${esc(c.key)}"><span class="row-icon">${icon('refresh')}</span><span class="row-main"><span class="row-title">Soruları güncelle</span><span class="row-sub">${c.source && c.source.types ? esc(splitText(c.uni, normTypes(c.uni, c.source.types), c.source.limit || 999)) + ' · ' : ''}Yeni sınavları getirir, ilerlemeniz korunur</span></span></button>
         <button class="row" data-act="cacheCourse" data-arg="${esc(c.key)}"><span class="row-icon">${icon('cloud')}</span><span class="row-main"><span class="row-title">Çevrimdışı için indir</span><span class="row-sub">Soru görsellerini cihaza kaydeder</span></span></button>
         <button class="row" data-act="resetCourse" data-arg="${esc(c.key)}"><span class="row-icon">${icon('refresh')}</span><span class="row-main"><span class="row-title">İlerlemeyi sıfırla</span><span class="row-sub">Bu dersin kavrama ve tekrar bilgisi silinir</span></span></button>
         <button class="row" data-act="removeCourse" data-arg="${esc(c.key)}"><span class="row-icon" style="color:var(--err)">${icon('trash')}</span><span class="row-main"><span class="row-title">Dersi kaldır</span><span class="row-sub">Sorular ve ilerleme bu cihazdan silinir</span></span></button>
@@ -862,18 +918,37 @@ function viewSearch(v) {
 
 /* ---------- Ders ekle ---------- */
 let importing = false;
-function linkRowHtml(i, val = '', type = '', limit = '4') {
+/* Çoklu sınav türü seçici (çip düğmeleri + canlı dağılım satırı) */
+function typePickerHtml(uni, types, limit) {
+  types = normTypes(uni, types);
+  return `<div class="type-pick" data-uni="${uni}">
+    <div class="chips type-chips" role="group" aria-label="Sınav türü">${typeDefs(uni).map((d) => { const on = types.includes(d[0]);
+      return `<button type="button" class="chip${on ? ' on' : ''}" data-tp="${d[0]}" aria-pressed="${on}">${icon('check')}<span>${esc(d[1])}</span></button>`; }).join('')}</div>
+    <div class="split-line" data-split aria-live="polite">${esc(splitText(uni, types, +limit || 4))}</div></div>`;
+}
+function readTypes(box) { return box ? $$('.type-chips .chip.on', box).map((b) => b.dataset.tp) : ['ara']; }
+function updateSplit(box, limit) { const el = box && box.querySelector('[data-split]'); if (el) el.textContent = splitText(box.dataset.uni, readTypes(box), +limit || 4); }
+/** Kapsayıcıdaki tüm seçicilere tıklama bağlar. getLimit(box) sınav sayısını, onChange(types, box) kaydı verir. */
+function bindTypePickers(root, getLimit, onChange) {
+  root.addEventListener('click', (e) => {
+    const b = e.target.closest('.type-chips [data-tp]'); if (!b) return;
+    const box = b.closest('.type-pick');
+    const on = !b.classList.contains('on');
+    if (!on && readTypes(box).length <= 1) { toast('En az bir sınav türü seçili kalmalı'); b.classList.remove('nudge'); void b.offsetWidth; b.classList.add('nudge'); return; }
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+    updateSplit(box, getLimit(box));
+    if (onChange) onChange(readTypes(box), box);
+  });
+}
+function linkRowHtml(i, val = '', types = null, limit = '4') {
   const info = analyzeLink(val);
   const uni = info.uni || 'anadolu';
-  const opts = TYPE_OPTIONS[uni].map((o) => `<option value="${o[0]}" ${o[0] === type ? 'selected' : ''}>${o[1]}</option>`).join('');
   return `<div class="link-row" data-row="${i}">
     <div class="link-row-head"><span class="label">Ders ${i + 1}</span><span class="detect ${info.uni ? 'ok' : info.error ? 'err' : ''}" data-detect>${info.uni ? uniLabel(info.uni) : info.error ? esc(info.error) : 'Link bekleniyor'}</span></div>
     <div class="link-input-wrap"><input class="input" data-url type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="aofsoru.com/… veya ataaofsoru.com/…" value="${esc(val)}">
       <button class="paste-btn" data-act="pasteLink" type="button">Yapıştır</button></div>
-    <div class="grid2">
-      <select class="select" data-type aria-label="Sınav türü">${opts}</select>
-      <select class="select" data-limit aria-label="Sınav sayısı">${[1, 2, 3, 4, 5, 6, 8, 10].map((n) => `<option value="${n}" ${String(n) === String(limit) ? 'selected' : ''}>${n} sınav</option>`).join('')}<option value="999" ${limit === '999' ? 'selected' : ''}>Tümü</option></select>
-    </div>
+    <div class="field"><span class="label">Sınav türü <small class="muted">· birden çok seçilebilir</small></span>${typePickerHtml(uni, types, limit)}</div>
+    <select class="select" data-limit aria-label="Sınav sayısı">${[1, 2, 3, 4, 5, 6, 8, 10].map((n) => `<option value="${n}" ${String(n) === String(limit) ? 'selected' : ''}>${n} sınav</option>`).join('')}<option value="999" ${String(limit) === '999' ? 'selected' : ''}>Tüm sınavlar</option></select>
     ${i > 0 ? `<button class="btn btn-ghost btn-sm" data-act="removeRow" style="align-self:flex-start">${icon('x')} Satırı kaldır</button>` : ''}
   </div>`;
 }
@@ -901,11 +976,12 @@ function viewAdd(v) {
     <button class="btn btn-primary btn-block section" id="startBtn" data-act="startImport">${icon('down')} Soruları getir</button>
     <p class="help" style="margin-top:12px;text-align:center">Bağlantı sorunu yaşarsanız <a href="#/ayarlar" style="color:var(--accent)">Ayarlar › Bağlantı</a> bölümünden kendi Cloudflare Worker adresinizi girin.</p>`;
   const rows = $('#rows');
-  const list = draft && Array.isArray(draft.rows) && draft.rows.length ? draft.rows : [{ url: '', type: 'ara', limit: '4' }];
-  rows.innerHTML = list.map((r, i) => linkRowHtml(i, r.url, r.type, r.limit)).join('');
+  const list = draft && Array.isArray(draft.rows) && draft.rows.length ? draft.rows : [{ url: '', types: lastTypes(), limit: '4' }];
+  rows.innerHTML = list.map((r, i) => linkRowHtml(i, r.url, r.types || r.type, r.limit)).join('');
   if (draft && draft.ceiling) $('#ceiling').value = draft.ceiling;
   rows.addEventListener('input', (e) => { if (e.target.matches('[data-url]')) updateRowDetect(e.target.closest('.link-row')); saveDraft(); });
-  rows.addEventListener('change', saveDraft);
+  rows.addEventListener('change', (e) => { if (e.target.matches('[data-limit]')) updateSplit(e.target.closest('.link-row').querySelector('.type-pick'), e.target.value); saveDraft(); });
+  bindTypePickers(rows, (box) => box.closest('.link-row').querySelector('[data-limit]').value, () => saveDraft());
   $('#ceiling').addEventListener('change', saveDraft);
 }
 function updateRowDetect(row) {
@@ -914,17 +990,12 @@ function updateRowDetect(row) {
   const d = row.querySelector('[data-detect]');
   d.className = 'detect ' + (info.uni ? 'ok' : info.error ? 'err' : '');
   d.textContent = info.uni ? uniLabel(info.uni) : info.error || 'Link bekleniyor';
-  const sel = row.querySelector('[data-type]');
+  const box = row.querySelector('.type-pick');
   const uni = info.uni || 'anadolu';
-  if (sel.dataset.uni !== uni) {
-    const prev = sel.value;
-    sel.innerHTML = TYPE_OPTIONS[uni].map((o) => `<option value="${o[0]}">${o[1]}</option>`).join('');
-    if (TYPE_OPTIONS[uni].some((o) => o[0] === prev)) sel.value = prev;
-    sel.dataset.uni = uni;
-  }
+  if (box.dataset.uni !== uni) box.outerHTML = typePickerHtml(uni, readTypes(box), row.querySelector('[data-limit]').value);
 }
 function collectRows() {
-  return $$('#rows .link-row').map((r) => ({ url: r.querySelector('[data-url]').value.trim(), type: r.querySelector('[data-type]').value, limit: r.querySelector('[data-limit]').value }));
+  return $$('#rows .link-row').map((r) => ({ url: r.querySelector('[data-url]').value.trim(), types: readTypes(r.querySelector('.type-pick')), limit: r.querySelector('[data-limit]').value }));
 }
 function saveDraft() { const c = $('#ceiling'); writeJSON('aof_add_draft', { rows: collectRows(), ceiling: c ? c.value : '' }); }
 
@@ -964,6 +1035,7 @@ async function runImport(tasks, after = 'home') {
       item.className = 'log-item ok';
       item.querySelector('b').textContent = courseName(r.course);
       s.textContent = `${nc.examsOk}/${nc.examsTotal} sınav · ${nc.questions.length} soru${r.added ? ` · ${r.added} yeni` : ' · yeni soru yok'}`;
+      (nc.notes || []).forEach((n) => s.insertAdjacentHTML('afterend', `<span class="imp-note">${icon('alert')}<span>${esc(n)}</span></span>`));
       summary.push({ ok: true, key: r.course.key });
     } catch (e) {
       item.className = 'log-item err';
@@ -1707,7 +1779,7 @@ const actions = {
   finishExam: () => finishExam(false),
   reviewList: (el) => startSession({ mode: 'list', title: el.dataset.title || 'İnceleme', ids: el.dataset.ids.split('\n').filter((id) => qIndex.has(id)) }),
   reviewOne: (el) => reviewOne(el.dataset.id, el.dataset.a),
-  addRow: () => { const rows = $('#rows'); const n = rows.children.length; if (n >= 20) return; rows.insertAdjacentHTML('beforeend', linkRowHtml(n)); rows.lastElementChild.querySelector('[data-url]').focus(); saveDraft(); },
+  addRow: () => { const rows = $('#rows'); const n = rows.children.length; if (n >= 20) return; rows.insertAdjacentHTML('beforeend', linkRowHtml(n, '', lastTypes())); rows.lastElementChild.querySelector('[data-url]').focus(); saveDraft(); },
   removeRow: (el) => { el.closest('.link-row').remove(); $$('#rows .link-row').forEach((r, i) => (r.querySelector('.label').textContent = `Ders ${i + 1}`)); saveDraft(); },
   async pasteLink(el) {
     const row = el.closest('.link-row'); const inp = row.querySelector('[data-url]');
@@ -1720,7 +1792,8 @@ const actions = {
     if (!rows.length) { toast('En az bir ders linki girin.'); $('#rows [data-url]').focus(); return; }
     const bad = rows.map((r) => analyzeLink(r.url)).find((i) => i.error);
     if (bad) { toast(bad.error, 'err', 3500); return; }
-    await runImport(rows.map((r) => ({ url: r.url, type: r.type, limit: +r.limit, ceiling, label: r.url.replace(/^https?:\/\/(www\.)?/, '') })));
+    setProfile({ types: rows[rows.length - 1].types });
+    await runImport(rows.map((r) => ({ url: r.url, types: r.types, limit: +r.limit, ceiling, label: r.url.replace(/^https?:\/\/(www\.)?/, '') })));
   },
   async refreshCourse(el) {
     const c = getCourse(el.dataset.arg); if (!c) return;
@@ -1731,16 +1804,21 @@ const actions = {
       if (m && !m[1].startsWith('t:')) url = `https://aofsoru.com/${m[1]}-sinav-sorulari`;
     }
     if (!url) { toast('Bu dersin kaynak linki bilinmiyor; Ders Ekle’den linkini yeniden ekleyin.', '', 4000); go('#/ekle'); return; }
-    let type = src.type, limit = src.limit;
-    if (!type) {
-      // v21 dersleri: türü ve sınav sayısını mevcut başlıklardan çıkar ("2023-2024 ARA")
-      const map = { 'ARA': 'ara', 'FINAL': 'final', 'YAZ-OKULU': 'yaz-okulu', 'TEK-DERS': 'tek-ders' };
+    const uni = c.uni || analyzeLink(url).uni || 'anadolu';
+    let types = src.types, limit = src.limit;
+    if (!types && src.type) types = src.type;                       // v23: tek tür
+    if (!types) {
+      // v21 dersleri: türleri ve sınav sayısını mevcut sorulardan / başlıklardan çıkar ("2023-2024 ARA")
+      const map = { 'ARA': 'ara', 'FINAL': 'final', 'DONEM-SONU': 'final', 'BUTUNLEME': 'butunleme', 'YAZ-OKULU': 'yaz-okulu', 'TEK-DERS': 'tek-ders' };
       const groups = examGroups(c).map((g) => g.title);
-      const kinds = new Set(groups.map((t) => map[(t.split(' ')[1] || '').toUpperCase()]).filter(Boolean));
-      type = kinds.size === 1 ? Array.from(kinds)[0] : kinds.size === 2 && kinds.has('ara') && kinds.has('final') ? 'ara-final' : 'all';
+      const ks = new Set(c.questions.map((q) => q.kind && typeOfKind(uni, q.kind)).filter(Boolean));
+      if (!ks.size) groups.forEach((t) => { const k = map[(t.split(' ')[1] || '').toUpperCase()]; if (k) ks.add(k); });
+      types = ks.size ? Array.from(ks) : 'all';
       limit = Math.max(4, groups.length);
     }
-    await runImport([{ url, type, limit: limit || 999, label: courseName(c) }], 'stay');
+    types = normTypes(uni, types);
+    c.source = Object.assign({}, src, { types }); delete c.source.type;
+    await runImport([{ url, types, limit: limit || 999, label: courseName(c) }], 'stay');
   },
   cacheCourse: (el) => { const c = getCourse(el.dataset.arg); if (c) cacheCourse(c); },
   async resetCourse(el) {
@@ -1836,7 +1914,13 @@ function normName(s) {
   return s.split(' ').map((w, i) => { const lw = w.toLocaleLowerCase('tr'); return i && SMALL_WORDS.has(lw) ? lw : w; }).join(' ');
 }
 
-function getProfile() { const p = readJSON(PROFILE_KEY, null); return p && UNI_INFO[p.uni] && p.prog ? p : null; }
+/** Profil; v23'ün tek "type" ayarı ilk okumada "types" dizisine taşınır. */
+function migrateProfile(p) {
+  if (p && p.type !== undefined) { if (!Array.isArray(p.types)) p.types = normTypes(p.uni || 'anadolu', p.type); delete p.type; writeJSON(PROFILE_KEY, p); }
+  return p;
+}
+function getProfile() { const p = migrateProfile(readJSON(PROFILE_KEY, null)); return p && UNI_INFO[p.uni] && p.prog ? p : null; }
+function lastTypes(uni) { const p = migrateProfile(readJSON(PROFILE_KEY, null)); return p && Array.isArray(p.types) ? (uni ? normTypes(uni, p.types) : p.types) : ['ara']; }
 function setProfile(patch) { const p = Object.assign({}, readJSON(PROFILE_KEY, null) || {}, patch, { at: Date.now() }); writeJSON(PROFILE_KEY, p); return p; }
 
 function mkCourse(uni, id, name, tpl) {
@@ -2091,8 +2175,8 @@ function viewProgram(v, uni, progId) {
     if (term !== 'all' && term !== 'sec' && !numbered.some((t) => String(t.n) === term)) term = numbered.length ? String(numbered[0].n) : 'all';
     if (term === 'sec' && !hasSec) term = 'all';
     const prof = setProfile({ uni, level: prog.level, prog: prog.id, progName: prog.name, term: same ? prof0.term ?? term : term,
-      type: same && prof0.type ? prof0.type : 'ara', limit: same && prof0.limit ? prof0.limit : 4 });
-    let type = TYPE_OPTIONS[uni].some((o) => o[0] === prof.type) ? prof.type : TYPE_OPTIONS[uni][0][0];
+      types: lastTypes(), limit: same && prof0.limit ? prof0.limit : 4 });
+    let types = normTypes(uni, prof.types);
     let limit = prof.limit || 4;
     pickSel = new Set();
     const cy = currentAcademicYear();
@@ -2115,7 +2199,7 @@ function viewProgram(v, uni, progId) {
         <div id="clist"></div>
       </div>
       <div class="card card-pad section pick-opts">
-        <div class="field"><span class="label">Sınav türü</span><div class="chips" id="typeChips">${TYPE_OPTIONS[uni].map((o) => `<button class="chip${o[0] === type ? ' on' : ''}" data-type="${o[0]}">${esc(o[1])}</button>`).join('')}</div></div>
+        <div class="field" id="typeBox"><span class="label">Sınav türü <small class="muted">· birden çok seçilebilir</small></span>${typePickerHtml(uni, types, limit)}</div>
         <div class="field" style="margin-top:16px"><span class="label">Her dersten</span><div class="chips" id="limitChips">${[2, 4, 6, 10, 999].map((n) => `<button class="chip${n === limit ? ' on' : ''}" data-limit="${n}">${n === 999 ? 'Tüm sınavlar' : n + ' sınav'}</button>`).join('')}</div></div>
         <div class="field" style="margin-top:16px"><label class="label" for="pceiling">En yeni öğretim yılı</label>
           <select class="select" id="pceiling"><option value="">Otomatik (en güncel)</option>${Array.from({ length: 12 }, (_, k) => cy - k).map((y) => `<option value="${y}">${y}–${y + 1}</option>`).join('')}</select>
@@ -2169,8 +2253,8 @@ function viewProgram(v, uni, progId) {
       setProfile({ term });
       drawList();
     });
-    $('#typeChips').addEventListener('click', (e) => { const b = e.target.closest('[data-type]'); if (!b) return; type = b.dataset.type; $$('#typeChips .chip').forEach((x) => x.classList.toggle('on', x === b)); setProfile({ type }); });
-    $('#limitChips').addEventListener('click', (e) => { const b = e.target.closest('[data-limit]'); if (!b) return; limit = +b.dataset.limit; $$('#limitChips .chip').forEach((x) => x.classList.toggle('on', x === b)); setProfile({ limit }); });
+    bindTypePickers($('#typeBox'), () => limit, (t) => { types = t; setProfile({ types }); });
+    $('#limitChips').addEventListener('click', (e) => { const b = e.target.closest('[data-limit]'); if (!b) return; limit = +b.dataset.limit; $$('#limitChips .chip').forEach((x) => x.classList.toggle('on', x === b)); setProfile({ limit }); updateSplit($('#typeBox .type-pick'), limit); });
     v._pick = {
       all() {
         const vis = termCourses(prog, term);
@@ -2183,7 +2267,7 @@ function viewProgram(v, uni, progId) {
         const picked = Array.from(pickSel).map((id) => byId.get(id)).filter(Boolean);
         if (!picked.length) return;
         const ceiling = +($('#pceiling').value || 0) || null;
-        const ok = await runImport(picked.map((c) => ({ url: c.url, type, limit, ceiling, label: c.name })));
+        const ok = await runImport(picked.map((c) => ({ url: c.url, types, limit, ceiling, label: c.name })));
         if (ok) pickSel = new Set();
       }
     };
@@ -2216,8 +2300,9 @@ function fillHomeTerm(v) {
           ${missing.length ? `<button class="btn btn-primary" data-act="quickAddTerm">${icon('down')} Eksik ${missing.length} dersi ekle</button>` : `<span class="help">Bu dönemin tüm dersleri eklendi.</span>`}
           <a class="btn btn-ghost" href="#/ekle/sec">Bölümümü değiştir</a>
         </div>
+        ${missing.length ? `<p class="help term-split">Her dersten ${esc(((x) => x.charAt(0).toLocaleLowerCase('tr') + x.slice(1))(splitText(p.uni, normTypes(p.uni, p.types), p.limit || 4)))}</p>` : ''}
       </div>`;
-    v._quick = () => runImport(missing.map((c) => ({ url: c.url, type: p.type || 'ara', limit: p.limit || 4, label: c.name })));
+    v._quick = () => runImport(missing.map((c) => ({ url: c.url, types: normTypes(p.uni, p.types), limit: p.limit || 4, label: c.name })));
   }).catch(() => { if (slot.isConnected) slot.remove(); });
 }
 

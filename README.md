@@ -7,7 +7,13 @@ kavramaya dayalı çalışma uygulaması. Tamamen statik (GitHub Pages); tüm ve
 
 ## Özellikler
 - **Bölüm seçici:** Üniversite → Önlisans/Lisans → bölüm (Türkçe harf duyarsız arama) → yarıyıl → dersleri işaretleyip Başlat. Link gerekmez; seçilen bölüm hatırlanır ve panelde “Bu dönemki derslerim” kartı çıkar.
-- Gelişmiş: ders linkini yapıştırın; üniversite otomatik tanınır, sitedeki sınav listesi okunur, seçtiğiniz türde (vize, final, bütünleme, yaz okulu…) son N sınav getirilir.
+- Gelişmiş: ders linkini yapıştırın; üniversite otomatik tanınır, sitedeki sınav listesi okunur, seçtiğiniz türlerde son N sınav getirilir.
+- **Çoklu sınav türü:** Anadolu’da vize, final (dönem sonu), yaz okulu, tek ders; ATA’da vize, final, bütünleme, yaz okulu, mezuniyet (3 ders).
+  Birden çok tür seçilebilir (en az biri seçili kalır). N sınav türlere olabildiğince eşit bölünür; artan sınavlar
+  vize → final → bütünleme → yaz okulu → tek ders/mezuniyet sırasıyla verilir (ör. 3 sınav, vize + yaz okulu = 2 vize + 1 yaz okulu).
+  Her türün içinde en yeni sınavlar alınır (öğretim yılı → güz/bahar/yaz → vize/final/bütünleme sırası; yaz okulu aynı yılın baharından sonra gelir).
+  Bir türde yeterli sınav yoksa eksik kalan pay diğer seçili türlerin sıradaki en yeni sınavlarıyla tamamlanır ve kısa bir not gösterilir.
+  Seçim profilde saklanır, her ders kendi türlerini hatırlar (“Soruları güncelle” aynı türleri kullanır).
 - Sıralı çalışma (kaldığınız yerden devam), Leitner tipi aralıklı tekrar (1-3-7-14-30 gün), yanlış defteri, karma kavrama, işaretliler.
 - Süreli deneme sınavı: karma, geçmiş sınavı birebir ya da zayıf konular; sonuç kâğıdı ve sınav geçmişi.
 - Soru notları, ders/sınav/not araması, soru haritası, görsel yakınlaştırma, klavye (A–E, ← →, F) ve kaydırma ile gezinme.

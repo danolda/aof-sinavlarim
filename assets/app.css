@@ -536,3 +536,15 @@ label.row.pick .tag svg { width: 12px; height: 12px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Çoklu sınav türü seçici (v24) */
+.type-pick { display: flex; flex-direction: column; gap: 10px; }
+.type-chips .chip { min-height: 44px; -webkit-tap-highlight-color: transparent; transition: background .12s, border-color .12s, color .12s; }
+.type-chips .chip svg { width: 14px; height: 14px; flex: none; display: none; }
+.type-chips .chip.on svg { display: block; }
+.type-chips .chip.nudge { animation: nudge .3s; }
+@keyframes nudge { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.split-line { font-size: 13px; color: var(--text-2); padding: 8px 12px; border-radius: 10px; border: 1px dashed var(--accent-line); background: var(--accent-soft); font-variant-numeric: tabular-nums; }
+.imp-note { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; font-size: 12.5px; line-height: 1.4; color: var(--accent); }
+.imp-note svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+.term-split { margin: 10px 0 0; }
