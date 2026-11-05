@@ -1,0 +1,280 @@
+{
+ "v": 1,
+ "verified": "2026-11-05",
+ "note": "Son doğrulama 2026-11-05. Tarihler değişebilir, resmî siteyi kontrol et. Saatler Europe/Istanbul.",
+ "tz": "Europe/Istanbul",
+ "unis": {
+  "ata": {
+   "name": "Atatürk Üniversitesi AÖF",
+   "short": "ATA",
+   "calendar": "https://ataaof.edu.tr/AkademikTakvim/Index/",
+   "exams": [
+    {
+     "id": "ata-2026-guz-vize",
+     "title": "Güz Vizesi",
+     "type": "vize",
+     "days": [
+      {
+       "date": "2026-11-21",
+       "sessions": [
+        {
+         "label": "I. oturum",
+         "time": "09:30"
+        },
+        {
+         "label": "II. oturum",
+         "time": "14:00"
+        }
+       ]
+      },
+      {
+       "date": "2026-11-22",
+       "sessions": [
+        {
+         "label": "III. oturum",
+         "time": "15:00"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ata-2026-guz-final",
+     "title": "Güz Finali",
+     "type": "final",
+     "days": [
+      {
+       "date": "2027-01-09"
+      },
+      {
+       "date": "2027-01-10"
+      }
+     ]
+    },
+    {
+     "id": "ata-2026-guz-but",
+     "title": "Güz Bütünlemesi",
+     "type": "but",
+     "days": [
+      {
+       "date": "2027-02-13"
+      },
+      {
+       "date": "2027-02-14"
+      }
+     ]
+    },
+    {
+     "id": "ata-2027-bahar-vize",
+     "title": "Bahar Vizesi",
+     "type": "vize",
+     "days": [
+      {
+       "date": "2027-04-17"
+      },
+      {
+       "date": "2027-04-18"
+      }
+     ]
+    },
+    {
+     "id": "ata-2027-bahar-final",
+     "title": "Bahar Finali",
+     "type": "final",
+     "days": [
+      {
+       "date": "2027-06-05"
+      },
+      {
+       "date": "2027-06-06"
+      }
+     ]
+    },
+    {
+     "id": "ata-2027-bahar-but",
+     "title": "Bahar Bütünlemesi",
+     "type": "but",
+     "days": [
+      {
+       "date": "2027-07-03"
+      },
+      {
+       "date": "2027-07-04"
+      }
+     ]
+    },
+    {
+     "id": "ata-2027-mezuniyet",
+     "title": "Mezuniyet (Üç Ders) Sınavı",
+     "type": "uc",
+     "days": [
+      {
+       "date": "2027-08-22"
+      }
+     ]
+    }
+   ]
+  },
+  "anadolu": {
+   "name": "Anadolu Üniversitesi AÖF",
+   "short": "Anadolu",
+   "calendar": "https://www.anadolu.edu.tr/acikogretim/sinavlar-ve-sorumluluk-uniteleri/sinav-tarihleri",
+   "sessionsSource": "https://www.anadolu.edu.tr/acikogretim/sinavlar-ve-sorumluluk-uniteleri/sinavlar",
+   "noBut": true,
+   "exams": [
+    {
+     "id": "anadolu-2026-guz-ara",
+     "title": "Güz Ara Sınavı",
+     "type": "ara",
+     "days": [
+      {
+       "date": "2026-12-05",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      },
+      {
+       "date": "2026-12-06",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "anadolu-2026-guz-sonu",
+     "title": "Güz Dönem Sonu Sınavı",
+     "type": "final",
+     "days": [
+      {
+       "date": "2027-01-16",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      },
+      {
+       "date": "2027-01-17",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "anadolu-2027-bahar-ara",
+     "title": "Bahar Ara Sınavı",
+     "type": "ara",
+     "days": [
+      {
+       "date": "2027-04-10",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      },
+      {
+       "date": "2027-04-11",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "anadolu-2027-bahar-sonu",
+     "title": "Bahar Dönem Sonu Sınavı",
+     "type": "final",
+     "days": [
+      {
+       "date": "2027-05-29",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      },
+      {
+       "date": "2027-05-30",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "anadolu-2027-yaz",
+     "title": "Yaz Okulu Sınavı",
+     "type": "yaz",
+     "days": [
+      {
+       "date": "2027-08-21",
+       "sessions": [
+        {
+         "label": "Sabah",
+         "time": "09:30"
+        },
+        {
+         "label": "Öğleden sonra",
+         "time": "14:00"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

@@ -3,7 +3,7 @@
 /* AÖF Sınav Robotu v22 — çekirdek: depolama, göç, model */
 'use strict';
 
-const APP_VERSION = '25.0';
+const APP_VERSION = '26.0';
 const LS = {
   data: 'aof_full_data',        // dersler + sorular + soru istatistikleri (v21 ile aynı anahtar)
   wrongOld: 'aof_wrong_bank',   // v21: yanlış soruların tam kopyaları (göç sonrası silinir)
@@ -213,6 +213,7 @@ function recordAnswer(q, letter) {
   const s = q.qStats;
   const ok = letter === q.ans;
   s.seen = true; s.last = Date.now();
+  bumpDaily();
   if (ok) {
     s.correct++;
     s.mastery = Math.min(100, s.mastery + 50);
@@ -750,6 +751,7 @@ function viewHome(v) {
       <h1 class="h1">Çıkmış sorularla,<br>kavrayarak çalışın.</h1>
       <p class="lede">Bölümünüzü ve yarıyılınızı seçin; robot derslerinizin geçmiş yıllardaki sınavlarını getirir, siz de aralıklı tekrar ve sınav simülasyonuyla çalışırsınız.</p>
       <div id="installSlot">${installCardHTML()}</div>
+      ${takvimSlot()}
       ${dataLoadFailed ? `<div class="notice err" style="margin-top:16px">${icon('alert')}<div>Kayıtlı veriler okunamadı. Bozuk kopya ayrıca saklandı; Ayarlar’dan yedeğinizi içe aktarabilirsiniz.</div></div>` : ''}
       ${getProfile() ? homeTermSlot() : `<div class="card card-pad section">
         <ol class="steps">
@@ -760,7 +762,7 @@ function viewHome(v) {
         <div class="btn-row" style="margin-top:18px"><a class="btn btn-primary" href="#/ekle/sec">${icon('book')} Bölümümü seç</a><button class="btn" data-act="importBackup">${icon('up')} Yedekten yükle</button></div>
         <p class="help" style="margin-top:14px">Linkle eklemeyi tercih ederseniz: <a href="#/ekle/link" style="color:var(--accent)">Gelişmiş: link ile ekle</a></p>
       </div>`}`;
-    fillHomeTerm(v);
+    fillHomeTerm(v); fillTakvim(v);
     return;
   }
   const all = allUnique();
@@ -778,6 +780,7 @@ function viewHome(v) {
     <h1 class="h1">Çalışma Paneli</h1>
     ${live && live.ids ? `<div class="notice" style="margin-top:14px">${icon('timer')}<div style="flex:1">Yarım kalan bir sınavınız var: <b>${esc(live.title)}</b></div><a class="btn btn-sm btn-primary" href="#/sinav/canli">Devam</a></div>` : ''}
     <div id="installSlot">${installCardHTML()}</div>
+    ${takvimSlot()}
     <div class="hero section" style="margin-top:16px">
       <div class="eyebrow">${primary.k}</div>
       <div class="hero-row">
@@ -805,7 +808,7 @@ function viewHome(v) {
       <div class="section-head"><div class="h2">Dersler</div><a class="link" href="#/ekle">Ders ekle</a></div>
       <div class="list">${courses.map(courseCard).join('')}</div>
     </div>`;
-  fillHomeTerm(v);
+  fillHomeTerm(v); fillTakvim(v);
 }
 
 /* ---------- Ders ayrıntısı ---------- */
@@ -1253,9 +1256,9 @@ function onAnswer(L) {
     // tekrar kuyruğu: yanlışı birkaç soru sonra yeniden sor
     const id = q.id; const rq = S.requeue[id] || 0;
     const later = S.ids.indexOf(id, S.i + 1) !== -1;
-    if (!later && rq < 3 && ['review', 'wrong', 'unmastered', 'flagged'].includes(S.mode)) {
+    if (!later && rq < 3 && ['review', 'wrong', 'unmastered', 'flagged', 'daily'].includes(S.mode)) {
       if (!ok) { S.ids.splice(Math.min(S.ids.length, S.i + 5), 0, id); S.requeue[id] = rq + 1; }
-      else if (S.mode === 'unmastered' && !isMastered(q)) { S.ids.splice(Math.min(S.ids.length, S.i + 9), 0, id); S.requeue[id] = rq + 1; }
+      else if ((S.mode === 'unmastered' || S.mode === 'daily') && !isMastered(q)) { S.ids.splice(Math.min(S.ids.length, S.i + 9), 0, id); S.requeue[id] = rq + 1; }
     }
     saveAll();
   }
@@ -2418,6 +2421,266 @@ async function installApp() {
   else if (m === 'installed') toast('Uygulama zaten yüklü.', 'ok');
   else toast('Tarayıcı menüsünden “Uygulamayı yükle” ya da “Ana ekrana ekle”yi seçin.', '', 4500);
 }
+/* ---------- Sınav takvimi: geri sayım + günlük hedef ---------- */
+const TAKVIM_URL = 'data/takvim.json';
+const TK_UNI_KEY = 'aof_takvim_uni';   // profil yokken seçilen üniversite
+const DAILY_KEY = 'aof_daily';         // { 'YYYY-MM-DD': cevap sayısı } (Europe/Istanbul günü)
+const GOAL_KEY = 'aof_daily_goal';     // { date, exam, pool, goal }
+const TZ = 'Europe/Istanbul';
+const GOAL_MIN = 10, GOAL_CAP = 200;
+let takvimP = null;
+
+function loadTakvim() {
+  if (!takvimP) {
+    takvimP = fetch(TAKVIM_URL, { credentials: 'omit' })
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then((d) => { if (!d || !d.unis) throw new Error('bozuk takvim'); return d; })
+      .catch((e) => { takvimP = null; throw e; });
+  }
+  return takvimP;
+}
+/* Tarih yardımcıları: her şey İstanbul'un takvim günü üzerinden, saat dilimi bağımsız gün sayımı. */
+const _tkFmt = (() => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); } catch (e) { return null; } })();
+function istNow(t = Date.now()) {
+  if (_tkFmt) {
+    const p = {}; _tkFmt.formatToParts(new Date(t)).forEach((x) => { p[x.type] = x.value; });
+    return { date: `${p.year}-${p.month}-${p.day}`, min: (+p.hour % 24) * 60 + (+p.minute) };
+  }
+  const d = new Date(t + 3 * 36e5); // Türkiye: sabit UTC+3
+  return { date: d.toISOString().slice(0, 10), min: d.getUTCHours() * 60 + d.getUTCMinutes() };
+}
+function istToday() { return istNow().date; }
+function dayNum(iso) { const [y, m, d] = iso.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / DAY); }
+function daysBetween(a, b) { return dayNum(b) - dayNum(a); }
+function hm(s) { const [h, m] = String(s).split(':').map(Number); return h * 60 + (m || 0); }
+const TR_MON = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const TR_DAY = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+function fmtIso(iso, wd = true) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const w = TR_DAY[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${d} ${TR_MON[m - 1]}${wd ? ' ' + w : ''}`;
+}
+function fmtRange(ex) {
+  const a = ex.days[0].date, b = ex.days[ex.days.length - 1].date;
+  if (a === b) return fmtIso(a);
+  const [, m1, d1] = a.split('-').map(Number), [, m2, d2] = b.split('-').map(Number);
+  return m1 === m2 ? `${d1}–${d2} ${TR_MON[m1 - 1]}` : `${fmtIso(a, false)} – ${fmtIso(b, false)}`;
+}
+const SESSION_LEN = 120; // oturum bitişi için yaklaşık süre (dk)
+
+/** Seçili üniversite için durum: sıradaki sınav, gün sayısı, sınav günü / ara gün. */
+function examState(uniData, now = istNow()) {
+  const list = (uniData.exams || []).slice().sort((a, b) => a.days[0].date.localeCompare(b.days[0].date));
+  for (let i = 0; i < list.length; i++) {
+    const ex = list[i];
+    const first = ex.days[0].date, last = ex.days[ex.days.length - 1].date;
+    if (now.date > last) continue;
+    const next = list[i + 1] || null;
+    if (now.date < first) return { ex, next, phase: 'before', days: daysBetween(now.date, first) };
+    // sınav aralığı içindeyiz
+    const di = ex.days.findIndex((d) => d.date === now.date);
+    const today = ex.days[di];
+    const ses = (today && today.sessions) || [];
+    const endMin = ses.length ? Math.max(...ses.map((s) => hm(s.time))) + SESSION_LEN : 24 * 60;
+    const after = !!today && now.min >= endMin;
+    const nextDay = ex.days.find((d) => d.date > now.date) || null;
+    if (today && !after) return { ex, next, phase: 'today', day: today, nextDay, days: 0 };
+    if (nextDay) return { ex, next, phase: 'between', day: today || null, nextDay, days: daysBetween(now.date, nextDay.date) };
+    // son günün son oturumu bitti: sıradakine geç
+    if (!next) return { ex: null, done: ex };
+    return { ex: next, next: list[i + 2] || null, phase: 'before', days: daysBetween(now.date, next.days[0].date), justDone: ex };
+  }
+  return { ex: null };
+}
+function sesChips(day) {
+  const s = (day && day.sessions) || [];
+  return s.length ? `<div class="tk-times">${s.map((x) => `<span>${esc(x.label + ' ' + x.time)}</span>`).join('')}</div>` : '';
+}
+function sesText(day) {
+  const s = (day && day.sessions) || [];
+  return s.length ? s.map((x) => `${x.label} ${x.time}`).join(' · ') : '';
+}
+
+/* ---------- Günlük ilerleme ---------- */
+function dailyCounts() { const d = readJSON(DAILY_KEY, {}); return d && typeof d === 'object' && !Array.isArray(d) ? d : {}; }
+function todayCount() { return +dailyCounts()[istToday()] || 0; }
+function bumpDaily() {
+  const d = dailyCounts(); const k = istToday();
+  d[k] = (+d[k] || 0) + 1;
+  const keys = Object.keys(d).sort();
+  if (keys.length > 60) keys.slice(0, keys.length - 60).forEach((x) => delete d[x]);
+  try { localStorage.setItem(DAILY_KEY, JSON.stringify(d)); } catch (e) { /* sessizce geç */ }
+}
+
+/** Takvim için üniversite: Bölüm seçicideki profil → elle seçim → derslerin tek üniversitesi. */
+function takvimUni() {
+  const p = readJSON('aof_profile', null);
+  if (p && (p.uni === 'ata' || p.uni === 'anadolu')) return { uni: p.uni, from: 'profile' };
+  const m = localStorage.getItem(TK_UNI_KEY);
+  if (m === 'ata' || m === 'anadolu') return { uni: m, from: 'manual' };
+  const us = new Set(courses.map((c) => c.uni));
+  if (us.size === 1) return { uni: Array.from(us)[0], from: 'courses' };
+  return { uni: null };
+}
+/** Bu dönemin uygulamadaki dersleri (profil yarıyılı; katalog yoksa o üniversitenin tüm dersleri). */
+async function termCoursesInApp(uni) {
+  const p = getProfile();
+  const fallback = () => ({ list: courses.filter((c) => c.uni === uni), scope: 'uni' });
+  if (!p || p.uni !== uni) return fallback();
+  try {
+    const { prog } = await findProgram(p.uni, p.prog);
+    if (!prog) return fallback();
+    const want = termCourses(prog, p.term || 'all');
+    const have = Array.from(new Set(want.map(importedCourse).filter(Boolean)));
+    return { list: have, scope: 'term', want: want.length };
+  } catch (e) { return fallback(); }
+}
+function goalPool(list) {
+  const now = Date.now(); const seen = new Set();
+  const due = [], fresh = [], half = [];
+  for (const c of list) for (const q of c.questions) {
+    if (seen.has(q.id) || !hasKey(q)) continue; seen.add(q.id);
+    const qq = (qIndex.get(q.id) || { q }).q;
+    if (isDue(qq, now)) due.push(qq);
+    else if (!qq.qStats.seen) fresh.push(qq);
+    else if (!isMastered(qq)) half.push(qq);
+  }
+  return { due, fresh, half, total: seen.size, remaining: due.length + fresh.length + half.length };
+}
+function dailyGoal(examId, pool, daysLeft) {
+  if (!pool.remaining) return 0;
+  const raw = Math.ceil(pool.remaining / Math.max(1, daysLeft));
+  let goal = Math.min(GOAL_CAP, Math.max(GOAL_MIN, raw));
+  goal = Math.min(goal, Math.max(pool.remaining, GOAL_MIN));
+  const date = istToday();
+  const g = readJSON(GOAL_KEY, null);
+  // gün içinde hedef sabit kalır (çözdükçe küçülmesin); ders eklenirse yeniden hesaplanır
+  if (g && g.date === date && g.exam === examId && g.pool === pool.total) return g.goal;
+  writeJSON(GOAL_KEY, { date, exam: examId, pool: pool.total, goal });
+  return goal;
+}
+
+/* ---------- Panel kartı ---------- */
+function takvimSlot() { return `<div class="section tk-wrap" id="takvim" aria-live="polite"></div>`; }
+function fillTakvim(v) {
+  const slot = $('#takvim', v); if (!slot) return;
+  const tok = v.dataset.tok;
+  loadTakvim().then(async (d) => {
+    if (!slot.isConnected || v.dataset.tok !== tok) return;
+    const { uni } = takvimUni();
+    if (!uni) { slot.innerHTML = takvimBothHtml(d); return; }
+    const U = d.unis[uni]; if (!U) { slot.remove(); return; }
+    const st = examState(U);
+    slot.innerHTML = countdownHtml(d, uni, U, st) + `<div id="tkGoal"></div>`;
+    if (!st.ex) return;
+    const scope = await termCoursesInApp(uni);
+    if (!slot.isConnected || v.dataset.tok !== tok) return;
+    const g = $('#tkGoal', slot); if (g) g.outerHTML = goalHtml(uni, st, scope);
+  }).catch(() => { if (slot.isConnected) slot.remove(); });
+}
+function srcLink(U) { return `<a class="tk-src" href="${esc(U.calendar)}" target="_blank" rel="noopener">Kaynak ${icon('link')}</a>`; }
+function countdownHtml(d, uni, U, st) {
+  const short = U.short;
+  if (!st.ex) {
+    return `<div class="tk card"><div class="tk-top"><div class="eyebrow">Sınav takvimi · ${esc(short)}</div>${srcLink(U)}</div>
+      <div class="tk-title">Takvimde yaklaşan sınav yok</div>
+      <p class="help">Yeni akademik takvim açıklanınca burada görünecek. Tarihler için resmî siteyi kontrol edin.</p></div>`;
+  }
+  const ex = st.ex;
+  let big, line, cls = '';
+  if (st.phase === 'today') {
+    cls = ' tk-today'; big = '';
+    line = `<div class="tk-today-msg">Bugün sınav günü — başarılar</div><div class="tk-when">${esc(fmtIso(st.day.date))}</div>${sesChips(st.day)}
+      ${st.nextDay ? `<div class="tk-sub">Devamı: ${esc(fmtIso(st.nextDay.date))}${sesText(st.nextDay) ? ' · ' + esc(sesText(st.nextDay)) : ''}</div>` : ''}`;
+  } else if (st.phase === 'between') {
+    cls = ' tk-between'; big = st.days;
+    line = `<div class="tk-when">${st.day ? 'Bugünkü oturumlar bitti. ' : ''}Sıradaki gün: ${esc(fmtIso(st.nextDay.date))}${sesText(st.nextDay) ? ' · ' + esc(sesText(st.nextDay)) : ''}</div>`;
+  } else {
+    big = st.days;
+    const d0 = ex.days[0];
+    const times = ex.days.map((x) => sesText(x) ? `${fmtIso(x.date, false)}: ${sesText(x)}` : '').filter(Boolean);
+    line = `<div class="tk-when">${esc(fmtRange(ex))}${ex.days.length === 1 ? '' : ' · ' + esc(TR_DAY[new Date(dayNum(d0.date) * DAY).getUTCDay()]) + ' başlar'}</div>
+      ${times.length ? `<div class="tk-times">${times.map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : ''}`;
+  }
+  const label = `${short} ${ex.title}`;
+  return `<div class="tk card${cls}" data-exam="${esc(ex.id)}">
+    <div class="tk-top"><div class="eyebrow">Sıradaki sınav</div>${srcLink(U)}</div>
+    <div class="tk-head"><div class="tk-title">${esc(label)}${big !== '' ? ` <span class="tk-dot">·</span> <span class="tk-days num">${big === 1 ? 'yarın' : big + ' gün'}</span>` : ''}</div></div>
+    ${line}
+    ${st.justDone ? `<div class="tk-sub">${esc(short + ' ' + st.justDone.title)} tamamlandı — geçmiş olsun.</div>` : ''}
+    ${st.next ? `<div class="tk-next">Sonra: ${esc(st.next.title)} · ${esc(fmtRange(st.next))}</div>` : ''}
+    <div class="tk-foot">${esc('Son doğrulama ' + fmtIso(d.verified, false) + ' ' + d.verified.slice(0, 4))}. Tarihler değişebilir, resmî siteyi kontrol edin.${takvimUni().from !== 'profile' ? ` <button class="tk-swap" data-act="tkPickUni" data-uni="${uni === 'ata' ? 'anadolu' : 'ata'}">${uni === 'ata' ? 'Anadolu' : 'ATA'} takvimine geç</button>` : ''}</div>
+  </div>`;
+}
+function takvimBothHtml(d) {
+  const rows = ['anadolu', 'ata'].map((u) => {
+    const U = d.unis[u]; const st = examState(U);
+    if (!st.ex) return '';
+    const n = st.phase === 'today' ? 'Bugün' : `${st.days} gün`;
+    return `<button class="tk-row" data-act="tkPickUni" data-uni="${u}"><span class="row-main"><span class="row-title">${esc(U.short + ' ' + st.ex.title)}</span><span class="row-sub">${esc(fmtRange(st.ex))}</span></span><span class="tk-row-n num">${esc(n)}</span></button>`;
+  }).join('');
+  return `<div class="tk card"><div class="tk-top"><div class="eyebrow">Sınav takvimi</div></div>
+    <div class="tk-title">Hangi üniversitedesiniz?</div>
+    <p class="help" style="margin:4px 0 10px">Seçin; geri sayım ve günlük hedef ona göre hesaplansın.</p>
+    <div class="tk-rows">${rows}</div>
+    <div class="tk-foot">Son doğrulama ${esc(fmtIso(d.verified, false) + ' ' + d.verified.slice(0, 4))}. Tarihler değişebilir, resmî siteyi kontrol edin.</div></div>`;
+}
+function goalHtml(uni, st, scope) {
+  const list = scope.list;
+  if (!list.length) {
+    return `<div class="tk-goal card"><div class="tk-goal-head"><div class="h2">Günlük hedef</div></div>
+      <p class="help" style="margin:6px 0 12px">Hedef, bu dönemin derslerindeki sorulara göre hesaplanır. Önce derslerinizi ekleyin.</p>
+      <a class="btn btn-primary btn-block" href="#/ekle/sec">${icon('plus')} Derslerimi ekle</a></div>`;
+  }
+  const pool = goalPool(list);
+  const daysLeft = st.phase === 'today' ? 1 : Math.max(1, st.days);
+  const done = todayCount();
+  const scopeTxt = scope.scope === 'term' ? `Bu dönemin ${list.length} dersi` : `${UNI_INFO[uni].short} · ${list.length} ders`;
+  const lastDays = st.phase !== 'today' && st.days <= 2;
+  const examTips = (st.phase === 'today' || lastDays) ? `<div class="tk-final">${icon('timer')}<div><b>${st.phase === 'today' ? 'Son tekrar' : 'Sınava ' + st.days + ' gün kaldı'}:</b> deneme çözüp yanlışlarınızı kapatın.
+      <div class="btn-row" style="margin-top:10px"><button class="btn btn-sm btn-primary" data-act="goExam">${icon('timer')} Sınav modu</button><button class="btn btn-sm" data-act="startWrong" data-arg="">${icon('alert')} Yanlışlarım${wrongIds.size ? ` (${wrongIds.size})` : ''}</button></div></div></div>` : '';
+  if (!pool.remaining) {
+    return `<div class="tk-goal card"><div class="tk-goal-head"><div class="h2">Günlük hedef</div><span class="help">${esc(scopeTxt)}</span></div>
+      <p class="tk-goal-done">Tüm sorular kavrandı, tekrar zamanı gelen yok.</p>
+      ${examTips || `<button class="btn btn-block" data-act="goExam">${icon('timer')} Deneme sınavı çöz</button>`}</div>`;
+  }
+  const goal = dailyGoal(st.ex.id, pool, daysLeft);
+  const pct = Math.min(100, Math.round((done / goal) * 100));
+  const met = done >= goal;
+  return `<div class="tk-goal card">
+    <div class="tk-goal-head"><div class="h2">Bugünkü hedef: <span class="tk-goal-n num">${goal}</span> soru</div></div>
+    <div class="tk-goal-meta"><span>${esc(scopeTxt)}</span><span><b>${pool.due.length}</b> tekrar</span><span><b>${pool.fresh.length}</b> yeni</span><span><b>${pool.half.length}</b> yarım</span></div>
+    <div class="tk-prog"><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${goal}" aria-valuenow="${Math.min(done, goal)}" aria-label="Bugünkü ilerleme"><i class="${met ? 'ok' : ''}" style="width:${pct}%"></i></div>
+      <div class="tk-prog-txt"><span><b class="num">${done}</b> / ${goal} bugün</span><span>${met ? 'Hedef tamam ✓' : `${goal - done} kaldı`}</span></div></div>
+    <p class="help tk-why">${pool.remaining} soru kaldı ÷ ${daysLeft} gün${pool.remaining / daysLeft > GOAL_CAP ? ` (günlük en fazla ${GOAL_CAP} gösterilir)` : ''}.</p>
+    <button class="btn btn-primary btn-block" data-act="tkStudy">${icon('book')} ${met ? 'Devam et' : 'Çalışmaya başla'}</button>
+    ${examTips}
+  </div>`;
+}
+
+/** Karma günlük oturum: önce tekrar zamanı gelenler, sonra yeni, sonra yarım kalanlar. */
+async function startDailySession() {
+  const d = await loadTakvim().catch(() => null);
+  const { uni } = takvimUni();
+  if (!d || !uni) { go('#/'); return; }
+  const st = examState(d.unis[uni]);
+  const scope = await termCoursesInApp(uni);
+  const pool = goalPool(scope.list);
+  if (!pool.remaining) { toast('Bu dönemin derslerinde çalışılacak soru kalmadı.'); return; }
+  const daysLeft = !st.ex ? 1 : st.phase === 'today' ? 1 : Math.max(1, st.days);
+  const goal = st.ex ? dailyGoal(st.ex.id, pool, daysLeft) : GOAL_MIN;
+  const n = Math.max(GOAL_MIN, goal - todayCount());
+  const due = pool.due.sort((a, b) => (a.qStats.box - b.qStats.box) || ((a.qStats.due || 0) - (b.qStats.due || 0)));
+  const ids = due.concat(shuffle(pool.fresh), shuffle(pool.half)).slice(0, n).map((q) => q.id);
+  startSession({ mode: 'daily', title: st.ex ? `Günlük hedef · ${d.unis[uni].short} ${st.ex.title}` : 'Günlük hedef', courseKey: null, ids: shuffleKeepHead(ids, due.length) });
+}
+/** Tekrarlar başta kalsın, yeni + yarım karışsın. */
+function shuffleKeepHead(ids, head) { return ids.slice(0, head).concat(shuffle(ids.slice(head))); }
+
+Object.assign(actions, {
+  tkStudy: () => { startDailySession(); },
+  tkPickUni: (el) => { const u = el.dataset.uni; if (u === 'ata' || u === 'anadolu') localStorage.setItem(TK_UNI_KEY, u); render(); }
+});
 /* ---------- Başlat ---------- */
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

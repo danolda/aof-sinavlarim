@@ -588,3 +588,46 @@ label.row.pick .tag svg { width: 12px; height: 12px; }
 @keyframes iosPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 @media (prefers-reduced-motion: reduce) { .ios-tools .ios-share { animation: none; } }
 @media (display-mode: standalone) { #installSlot { display: none; } }
+
+/* ---------- Sınav takvimi + günlük hedef (v26) ---------- */
+.tk-wrap { margin-top: 16px; display: grid; gap: 10px; }
+.tk { position: relative; overflow: hidden; padding: 16px 16px 14px;
+  background: linear-gradient(160deg, var(--navy-2), var(--navy) 65%); color: #ece9e3;
+  border-color: color-mix(in srgb, var(--navy-2) 60%, var(--line)); }
+.tk::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #c3a56e; opacity: .85; }
+.tk .eyebrow { color: #aeb5c1; }
+.tk-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tk-src { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; color: #d8bd8a; white-space: nowrap; padding: 4px 0; }
+.tk-src svg { width: 13px; height: 13px; }
+.tk-head { margin-top: 8px; }
+.tk-title { font-family: var(--serif); font-size: 23px; font-weight: 600; line-height: 1.2; letter-spacing: -.005em; overflow-wrap: anywhere; }
+.tk-dot { color: #c3a56e; }
+.tk-days { color: #d8bd8a; white-space: nowrap; }
+.tk-when { margin-top: 6px; font-size: 14px; color: #c9ced7; }
+.tk-times { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.tk-times span { font-size: 12.5px; padding: 4px 9px; border-radius: 8px; background: rgba(255,255,255,.06); border: 1px solid rgba(195,165,110,.28); color: #e3dccd; font-variant-numeric: tabular-nums; }
+.tk-sub { margin-top: 6px; font-size: 13px; color: #aeb5c1; }
+.tk-next { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.08); font-size: 13px; color: #aeb5c1; }
+.tk-foot { margin-top: 10px; font-size: 11.5px; color: #8e96a3; line-height: 1.45; }
+.tk-swap { color: #d8bd8a; font-weight: 600; font-size: 11.5px; text-decoration: underline; text-underline-offset: 2px; padding: 2px 0; }
+.tk-today-msg { margin-top: 8px; font-family: var(--serif); font-size: 19px; color: #d8bd8a; }
+.tk-today .tk-title { font-size: 21px; }
+.tk-rows { display: grid; gap: 8px; }
+.tk-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(195,165,110,.25); color: inherit; }
+.tk-row .row-title { color: #ece9e3; }
+.tk-row .row-sub { color: #aeb5c1; }
+.tk-row-n { font-family: var(--serif); font-size: 19px; color: #d8bd8a; white-space: nowrap; margin-left: auto; }
+.tk-goal { padding: 16px; }
+.tk-goal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tk-goal-head .h2 { font-size: 19px; }
+.tk-goal-n { color: var(--accent); }
+.tk-goal-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.tk-goal-meta b { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.tk-prog .bar { height: 6px; margin-top: 12px; }
+.tk-prog-txt { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.tk-prog-txt b { color: var(--text); }
+.tk-why { margin: 8px 0 12px; }
+.tk-goal-done { margin: 8px 0 12px; color: var(--text-2); font-size: 14px; }
+.tk-final { display: flex; gap: 10px; margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--accent-soft); border: 1px solid var(--accent-line); font-size: 13.5px; color: var(--text-2); }
+.tk-final > svg { color: var(--accent); flex: none; width: 18px; height: 18px; margin-top: 1px; }
+.tk-final .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
